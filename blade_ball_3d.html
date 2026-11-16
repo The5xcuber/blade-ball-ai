@@ -1,0 +1,3923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Blade Ball 3D</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Three.js r128 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- PeerJS for Free WebRTC P2P Online Rooms -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg-panel: #0f172a;
+      --bg-card: #1e293b;
+      --border-slate: #334155;
+      --accent-blue: #2563eb;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-crimson: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0b1120;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #f8fafc;
+      touch-action: none;
+    }
+
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Crisp Flat Roblox-Inspired Tactical UI Panels (No Neon/Gradients) */
+    .tactical-panel {
+      background-color: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 14px;
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
+    }
+
+    .tactical-subcard {
+      background-color: #1e293b;
+      border: 1.5px solid #334155;
+      border-radius: 10px;
+    }
+
+    .btn-tactile {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 10px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      transition: transform 0.08s ease, background-color 0.12s ease, border-color 0.12s ease;
+      cursor: pointer;
+    }
+
+    .btn-tactile:active {
+      transform: translateY(2px);
+    }
+
+    .btn-slate {
+      background-color: #1e293b;
+      border: 1.5px solid #475569;
+      border-bottom-width: 4px;
+      color: #f8fafc;
+    }
+    .btn-slate:hover {
+      background-color: #334155;
+    }
+
+    .btn-blue {
+      background-color: #2563eb;
+      border: 1.5px solid #1d4ed8;
+      border-bottom-width: 4px;
+      border-bottom-color: #1e3a8a;
+      color: #ffffff;
+    }
+    .btn-blue:hover {
+      background-color: #3b82f6;
+    }
+
+    .btn-emerald {
+      background-color: #10b981;
+      border: 1.5px solid #059669;
+      border-bottom-width: 4px;
+      border-bottom-color: #065f46;
+      color: #052e16;
+    }
+    .btn-emerald:hover {
+      background-color: #34d399;
+    }
+
+    .btn-amber {
+      background-color: #f59e0b;
+      border: 1.5px solid #d97706;
+      border-bottom-width: 4px;
+      border-bottom-color: #92400e;
+      color: #1c1917;
+    }
+    .btn-amber:hover {
+      background-color: #fbbf24;
+    }
+
+    .btn-crimson {
+      background-color: #ef4444;
+      border: 1.5px solid #dc2626;
+      border-bottom-width: 4px;
+      border-bottom-color: #991b1b;
+      color: #ffffff;
+    }
+    .btn-crimson:hover {
+      background-color: #f87171;
+    }
+
+    /* Red Screen Border Pulse When Targeted by the Homing Ball */
+    #target-edge-alert {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 12;
+      border: 0px solid rgba(239, 68, 68, 0);
+      transition: border-width 0.12s ease, border-color 0.12s ease;
+    }
+    #target-edge-alert.active {
+      border-width: 8px;
+      border-color: rgba(239, 68, 68, 0.85);
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 9999px;
+    }
+
+    /* Mobile Touch Joystick */
+    #joystick-zone {
+      position: fixed;
+      bottom: 22px;
+      left: 22px;
+      width: 132px;
+      height: 132px;
+      border-radius: 9999px;
+      background-color: rgba(15, 23, 42, 0.65);
+      border: 2.5px solid rgba(148, 163, 184, 0.55);
+      z-index: 22;
+      touch-action: none;
+    }
+    #joystick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 52px;
+      height: 52px;
+      margin-top: -26px;
+      margin-left: -26px;
+      border-radius: 9999px;
+      background-color: #f8fafc;
+      border: 3px solid #334155;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Fullscreen 3D Canvas Container -->
+  <div id="canvas-container" class="fixed inset-0 z-0 w-full h-full"></div>
+
+  <!-- Red Screen Edge Alert When Targeted -->
+  <div id="target-edge-alert"></div>
+
+  <!-- Incoming Offscreen Ball Direction Indicator -->
+  <div id="ball-direction-indicator" class="hidden fixed z-20 pointer-events-none px-2.5 py-1 rounded-lg bg-red-600 border-2 border-white text-white text-[11px] font-black shadow-lg">
+    BALL ▲
+  </div>
+
+  <!-- Non-Blocking Toast Banner -->
+  <div id="toast-banner" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-slate-900 border-2 border-blue-500 text-white text-xs font-black tracking-wide shadow-2xl pointer-events-none">
+    Notice
+  </div>
+
+  <!-- ==========================================================================
+       TOP TACTICAL HUD BAR
+       ========================================================================== -->
+  <header class="fixed top-2.5 left-2.5 right-2.5 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+    <!-- Left Cluster: Player Profile, Coins, FPS & GFX -->
+    <div class="flex flex-wrap items-center gap-1.5 pointer-events-auto">
+      <div class="tactical-panel px-3 py-1.5 flex items-center gap-2.5">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+        <span id="hud-player-name" class="text-xs sm:text-sm font-black tracking-tight text-white">Player</span>
+        <span class="text-slate-600">|</span>
+        <span class="text-xs font-extrabold text-amber-400 font-mono-num"><span id="hud-coins">250</span> COINS</span>
+        <span class="hidden sm:inline text-slate-600">|</span>
+        <span class="hidden sm:inline text-xs font-extrabold text-slate-300 font-mono-num"><span id="hud-wins">0</span> WINS</span>
+      </div>
+
+      <div class="tactical-panel px-2.5 py-1.5 flex items-center gap-2 text-[11px] font-mono-num font-extrabold">
+        <span id="hud-fps" class="text-emerald-400">60 FPS</span>
+        <button id="btn-gfx-toggle" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200">
+          GFX: HIGH
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Cluster: Match / Intermission Status Pill & Bot Notice -->
+    <div class="flex flex-col items-center gap-1 pointer-events-auto mx-auto sm:mx-0">
+      <div class="tactical-panel px-4 py-1.5 flex items-center gap-3">
+        <span id="hud-status-title" class="text-xs sm:text-sm font-black tracking-wide text-white">INTERMISSION • 30s</span>
+        <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-600 font-mono-num text-xs font-black text-amber-400" id="hud-speedometer">
+          NEXT: COLOSSEUM
+        </span>
+      </div>
+
+      <!-- Mandatory Bot Exclamation Notice Banner -->
+      <div id="hud-bot-notice" class="hidden px-3 py-1 rounded-lg bg-amber-500 border-2 border-amber-200 text-slate-950 text-[11px] font-black tracking-wide shadow-md">
+        [ ! ] BOTS PRESENT IN SERVER • EXIT ON DEATH ENABLED
+      </div>
+    </div>
+
+    <!-- Right Cluster: Navigation Buttons (Online Party First!) -->
+    <div class="flex flex-wrap items-center gap-1.5 pointer-events-auto">
+      <button id="btn-nav-servers" class="btn-tactile btn-blue px-3 py-1.5 text-xs">
+        <span>🌐</span>
+        <span id="nav-room-label">ONLINE PARTY</span>
+      </button>
+      <button id="btn-nav-play" class="btn-tactile btn-slate px-3 py-1.5 text-xs">
+        <span>⚔️</span>
+        <span>MODES</span>
+      </button>
+      <button id="btn-nav-swords" class="btn-tactile btn-slate px-3 py-1.5 text-xs">
+        <span>🗡️</span>
+        <span>SWORDS</span>
+      </button>
+      <button id="btn-nav-abilities" class="btn-tactile btn-slate px-3 py-1.5 text-xs">
+        <span>⚡</span>
+        <span>ABILITIES</span>
+      </button>
+      <button id="btn-nav-save" class="btn-tactile btn-slate px-2.5 py-1.5 text-xs">
+        <span>💾</span>
+        <span class="hidden md:inline">SAVE</span>
+      </button>
+      <button id="btn-nav-settings" class="btn-tactile btn-slate px-2.5 py-1.5 text-xs" title="Settings & Controls">
+        <span>⚙️</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       TOP-RIGHT LIVE ARENA ROSTER (ALIVE / ELIMINATED TRACKER)
+       ========================================================================== -->
+  <aside id="arena-roster-panel" class="hidden fixed top-16 right-2.5 z-15 w-52 sm:w-60 tactical-panel p-2.5 pointer-events-auto">
+    <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-700">
+      <span class="text-[11px] font-black uppercase tracking-wider text-slate-300">Arena Fighters</span>
+      <span id="roster-alive-count" class="font-mono-num text-[11px] font-black text-emerald-400">0 Alive</span>
+    </div>
+    <div id="roster-list" class="flex flex-col gap-1 max-h-48 overflow-y-auto"></div>
+  </aside>
+
+  <!-- Standoff 1v1 Banner -->
+  <div id="standoff-banner" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-20 px-5 py-1.5 rounded-xl bg-red-600 border-2 border-white text-white font-black text-sm sm:text-base tracking-widest shadow-xl">
+    🔥 STANDOFF 1V1 • SUDDEN DEATH 🔥
+  </div>
+
+  <!-- Sky Lobby Map Voting Bar -->
+  <div id="lobby-map-vote-bar" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-15 tactical-panel px-3 py-2 flex items-center gap-2 pointer-events-auto">
+    <span class="text-[11px] font-black text-slate-400 uppercase tracking-wider hidden sm:inline">Vote Map:</span>
+    <button data-vote-map="colosseum" class="vote-map-btn btn-tactile btn-blue px-2.5 py-1 text-xs">
+      Colosseum (<span id="vote-count-colosseum">1</span>)
+    </button>
+    <button data-vote-map="sandstone" class="vote-map-btn btn-tactile btn-slate px-2.5 py-1 text-xs">
+      Sandstone (<span id="vote-count-sandstone">0</span>)
+    </button>
+    <button data-vote-map="sakura" class="vote-map-btn btn-tactile btn-slate px-2.5 py-1 text-xs">
+      Sakura (<span id="vote-count-sakura">0</span>)
+    </button>
+  </div>
+
+  <!-- Lobby Portal Interaction Prompt -->
+  <div id="portal-prompt" class="hidden fixed bottom-36 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-xl bg-slate-900 border-2 border-blue-500 text-white text-xs sm:text-sm font-black shadow-xl cursor-pointer">
+    STEP IN OR PRESS [E] TO OPEN PORTAL
+  </div>
+
+  <!-- ==========================================================================
+       BOTTOM ACTION BAR (DESKTOP PARRY / ABILITY / JUMP & COOKIE BADGE)
+       ========================================================================== -->
+  <div id="desktop-action-bar" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-15 flex items-center gap-3 pointer-events-auto">
+    <button id="btn-desktop-parry" class="btn-tactile btn-blue px-6 py-3 text-sm font-black shadow-lg">
+      <span>🛡️ PARRY</span>
+      <span id="hud-parry-bind-badge" class="px-1.5 py-0.5 rounded bg-blue-900 text-[10px] font-mono-num">F / E</span>
+      <span id="parry-cd-label" class="font-mono-num text-xs text-blue-200">READY</span>
+    </button>
+
+    <button id="btn-desktop-ability" class="btn-tactile btn-amber px-5 py-3 text-sm font-black shadow-lg">
+      <span>⚡ <span id="hud-ability-name">DASH</span></span>
+      <span id="hud-ability-bind-badge" class="px-1.5 py-0.5 rounded bg-amber-900/40 text-[10px] font-mono-num">LMB / Q</span>
+      <span id="ability-cd-label" class="font-mono-num text-xs">READY</span>
+    </button>
+
+    <button id="btn-desktop-jump" class="btn-tactile btn-slate px-4 py-3 text-sm font-black shadow-lg">
+      <span>JUMP</span>
+      <span class="px-1.5 py-0.5 rounded bg-slate-900 text-[10px] font-mono-num">SPACE</span>
+    </button>
+  </div>
+
+  <!-- Bottom-Left Cookie Save Indicator Badge & Touch Mode Toggle -->
+  <div class="fixed bottom-3 left-3 z-20 flex items-center gap-2 pointer-events-auto">
+    <div id="cookie-saved-badge" class="opacity-0 transition-opacity duration-300 px-2.5 py-1 rounded-lg bg-emerald-600 border border-emerald-300 text-white text-[10px] font-black tracking-wider shadow">
+      [COOKIE SAVED]
+    </div>
+    <button id="btn-touch-toggle" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-[10px] font-extrabold hover:bg-slate-800">
+      TOUCH: AUTO
+    </button>
+  </div>
+
+  <!-- ==========================================================================
+       AUTOMATIC MOBILE TOUCH CONTROLS (VIRTUAL JOYSTICK + ACTION BUTTONS)
+       ========================================================================== -->
+  <div id="mobile-touch-controls" class="hidden">
+    <div id="joystick-zone">
+      <div id="joystick-knob"></div>
+    </div>
+
+    <div class="fixed bottom-5 right-4 z-22 flex flex-col items-end gap-2.5">
+      <button id="btn-touch-jump" class="btn-tactile btn-slate w-16 h-12 text-xs font-black shadow-xl">
+        JUMP
+      </button>
+      <div class="flex items-center gap-2.5">
+        <button id="btn-touch-ability" class="btn-tactile btn-amber w-20 h-20 rounded-2xl flex-col text-xs font-black shadow-xl">
+          <span class="text-base">⚡</span>
+          <span id="touch-ability-name" class="text-[10px]">DASH</span>
+          <span id="touch-ability-cd" class="font-mono-num text-[10px]">READY</span>
+        </button>
+        <button id="btn-touch-parry" class="btn-tactile btn-blue w-24 h-24 rounded-2xl flex-col text-sm font-black shadow-xl">
+          <span class="text-xl">🛡️</span>
+          <span>PARRY</span>
+          <span id="touch-parry-cd" class="font-mono-num text-[10px] text-blue-200">READY</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 1: ONLINE PARTY & ROOM CODE SYSTEM (ZERO FAKE HUMANS, DEFAULT 0 BOTS)
+       ========================================================================== -->
+  <div id="modal-servers" class="hidden fixed inset-0 z-30 bg-black/75 flex items-center justify-center p-3 sm:p-5">
+    <div class="tactical-panel max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-700 flex items-center justify-between bg-slate-900">
+        <div>
+          <h2 class="text-lg font-black text-white">ONLINE PARTY & ROOM CODES</h2>
+          <p class="text-[11px] font-semibold text-slate-400">100% Real Players • Zero Fake Humans • Default 0 Bots</p>
+        </div>
+        <button data-close-modal="modal-servers" class="btn-tactile btn-slate px-3 py-1.5 text-xs">✕ CLOSE</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex flex-col gap-4">
+        <!-- View A: Create or Join Room by Code -->
+        <div id="room-browser-view" class="flex flex-col gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <!-- Create New Party Room -->
+            <div class="tactical-subcard p-4 flex flex-col gap-3">
+              <div class="text-xs font-black uppercase tracking-wider text-blue-400">Create New Online Room</div>
+              <p class="text-[11px] text-slate-300 font-semibold">
+                Generates a shareable 5-character Room Code so friends on any device or browser tab can join your match.
+              </p>
+
+              <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-extrabold text-slate-400">Starting Arena</label>
+                <select id="select-room-map" class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-xs font-extrabold text-white">
+                  <option value="colosseum">Grand Sunlit Colosseum</option>
+                  <option value="sandstone">Sunken Sandstone Citadel</option>
+                  <option value="sakura">Imperial Sakura Courtyard</option>
+                </select>
+              </div>
+
+              <label class="flex items-center gap-2 text-xs font-extrabold text-slate-200 cursor-pointer">
+                <input id="chk-room-fill-bots" type="checkbox" class="w-4 h-4 accent-amber-500" />
+                <span>Fill Empty Spaces w/ AI Bots (Off by Default)</span>
+              </label>
+
+              <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-extrabold text-slate-400">Bot Difficulty (If Enabled)</label>
+                <select id="select-room-bot-diff" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-600 text-xs font-extrabold text-white">
+                  <option value="rookie">Rookie Bots</option>
+                  <option value="pro" selected>Pro Bots</option>
+                  <option value="grandmaster">Grandmaster Bots</option>
+                </select>
+              </div>
+
+              <button id="btn-create-room" class="btn-tactile btn-blue w-full py-2.5 text-xs font-black mt-auto">
+                + CREATE ROOM & GENERATE CODE
+              </button>
+            </div>
+
+            <!-- Join Room by 5-Character Code -->
+            <div class="tactical-subcard p-4 flex flex-col gap-3">
+              <div class="text-xs font-black uppercase tracking-wider text-emerald-400">Join Friend's Room Code</div>
+              <p class="text-[11px] text-slate-300 font-semibold">
+                Enter the 5-character room code shared by your room host to connect live via WebRTC P2P.
+              </p>
+
+              <div class="flex flex-col gap-1">
+                <label class="text-[11px] font-extrabold text-slate-400">5-Character Room Code</label>
+                <input id="input-join-code" type="text" maxlength="6" placeholder="E.G. K8M4X" class="px-3 py-2.5 rounded-lg bg-slate-900 border-2 border-slate-600 text-center font-mono-num text-lg font-black uppercase tracking-widest text-white focus:outline-none focus:border-emerald-400" />
+              </div>
+
+              <button id="btn-join-room-code" class="btn-tactile btn-emerald w-full py-2.5 text-xs font-black mt-auto">
+                JOIN ROOM BY CODE
+              </button>
+            </div>
+          </div>
+
+          <!-- Open Same-Browser Tab Rooms (Zero Fake Servers) -->
+          <div class="tactical-subcard p-3.5 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-black uppercase tracking-wider text-slate-300">Open Rooms in Local Browser Tabs</span>
+              <span class="text-[10px] font-bold text-slate-400">Only real active rooms appear here</span>
+            </div>
+            <div id="tab-rooms-list" class="flex flex-col gap-1.5 text-xs text-slate-400">
+              No open rooms detected in other browser tabs. Create a room above or enter a friend's code!
+            </div>
+          </div>
+        </div>
+
+        <!-- View B: Active Party Waiting Lobby -->
+        <div id="room-active-view" class="hidden flex-col gap-3.5">
+          <div class="tactical-subcard p-4 flex flex-wrap items-center justify-between gap-3 bg-slate-900">
+            <div>
+              <div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Active Party Room Code</div>
+              <div class="flex items-center gap-2.5 mt-0.5">
+                <span id="active-room-code" class="font-mono-num text-2xl font-black tracking-widest text-amber-400">-----</span>
+                <button id="btn-copy-room-code" class="btn-tactile btn-slate px-2.5 py-1 text-[11px]">COPY CODE</button>
+              </div>
+            </div>
+            <span id="active-room-role-badge" class="px-3 py-1 rounded-lg bg-blue-600 text-white text-xs font-black">
+              ROOM HOST
+            </span>
+          </div>
+
+          <!-- Mandatory Bot Exclamation Notice in Room -->
+          <div id="active-room-bot-notice" class="hidden px-3.5 py-2 rounded-xl bg-amber-500 border-2 border-amber-200 text-slate-950 text-xs font-black">
+            [ ! ] BOTS PRESENT IN THIS ROOM • INSTANT EXIT TO LOBBY ON DEATH ENABLED
+          </div>
+
+          <div class="tactical-subcard p-3.5 flex flex-col gap-2">
+            <div class="text-[11px] font-black uppercase tracking-wider text-slate-300">Connected Party Members (Real Humans Only)</div>
+            <div id="active-room-members" class="flex flex-col gap-1.5"></div>
+          </div>
+
+          <!-- Host-Only Match Controls -->
+          <div id="host-room-controls" class="tactical-subcard p-3.5 flex flex-col gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="text-[11px] font-extrabold text-slate-400">Arena Map</label>
+                <select id="select-active-room-map" class="w-full mt-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-xs font-extrabold text-white">
+                  <option value="colosseum">Grand Sunlit Colosseum</option>
+                  <option value="sandstone">Sunken Sandstone Citadel</option>
+                  <option value="sakura">Imperial Sakura Courtyard</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[11px] font-extrabold text-slate-400">Bot Difficulty</label>
+                <select id="select-active-room-bot-diff" class="w-full mt-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-xs font-extrabold text-white">
+                  <option value="rookie">Rookie Bots</option>
+                  <option value="pro" selected>Pro Bots</option>
+                  <option value="grandmaster">Grandmaster Bots</option>
+                </select>
+              </div>
+            </div>
+
+            <label class="flex items-center gap-2 text-xs font-extrabold text-slate-200 cursor-pointer">
+              <input id="chk-active-room-bots" type="checkbox" class="w-4 h-4 accent-amber-500" />
+              <span>Fill Empty Spaces w/ AI Bots (Default: 0 Bots)</span>
+            </label>
+
+            <button id="btn-host-start-match" class="btn-tactile btn-emerald w-full py-3 text-sm font-black">
+              START PARTY MATCH NOW
+            </button>
+          </div>
+
+          <div id="client-room-wait-msg" class="hidden tactical-subcard p-3 text-center text-xs font-extrabold text-blue-300">
+            Waiting for Room Host to launch the match...
+          </div>
+
+          <button id="btn-leave-room" class="btn-tactile btn-crimson w-full py-2 text-xs font-black">
+            LEAVE PARTY ROOM
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 2: GAME MODES & SOLO VS AI BOTS LAUNCHER
+       ========================================================================== -->
+  <div id="modal-play" class="hidden fixed inset-0 z-30 bg-black/75 flex items-center justify-center p-3 sm:p-5">
+    <div class="tactical-panel max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-700 flex items-center justify-between bg-slate-900">
+        <div>
+          <h2 class="text-lg font-black text-white">ARENA SELECTION & SOLO PRACTICE</h2>
+          <p class="text-[11px] font-semibold text-slate-400">Pick an architectural arena or jump into Solo vs AI Bots</p>
+        </div>
+        <button data-close-modal="modal-play" class="btn-tactile btn-slate px-3 py-1.5 text-xs">✕ CLOSE</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex flex-col gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <button data-select-map="colosseum" class="map-card tactical-subcard p-3 text-left border-2 border-blue-500">
+            <div class="text-xs font-black text-white">🏛️ SUNLIT COLOSSEUM</div>
+            <div class="text-[11px] text-slate-300 mt-1">Classical marble amphitheater with colonnade ring.</div>
+          </button>
+          <button data-select-map="sandstone" class="map-card tactical-subcard p-3 text-left">
+            <div class="text-xs font-black text-white">🏜️ SANDSTONE CITADEL</div>
+            <div class="text-[11px] text-slate-300 mt-1">Sunken desert courtyard with obelisks & step pyramid.</div>
+          </button>
+          <button data-select-map="sakura" class="map-card tactical-subcard p-3 text-left">
+            <div class="text-xs font-black text-white">⛩️ SAKURA COURTYARD</div>
+            <div class="text-[11px] text-slate-300 mt-1">Imperial shrine plaza with vermilion torii & pagoda.</div>
+          </button>
+        </div>
+
+        <div class="tactical-subcard p-4 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black uppercase tracking-wider text-amber-400">Solo Practice vs AI Bots</span>
+            <span class="px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-black">[ ! ] BOTS PRESENT</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[11px] font-extrabold text-slate-400">AI Bot Count</label>
+              <select id="select-solo-bot-count" class="w-full mt-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-xs font-extrabold text-white">
+                <option value="1">1 Bot (1v1 Duel)</option>
+                <option value="3">3 Bots (4 Fighters)</option>
+                <option value="5" selected>5 Bots (6 Fighters)</option>
+                <option value="7">7 Bots (8 Fighters)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] font-extrabold text-slate-400">Bot Skill Tier</label>
+              <select id="select-solo-bot-diff" class="w-full mt-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-xs font-extrabold text-white">
+                <option value="rookie">Rookie</option>
+                <option value="pro" selected>Pro</option>
+                <option value="grandmaster">Grandmaster</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="btn-start-solo-bots" class="btn-tactile btn-emerald w-full py-3 text-sm font-black">
+            PLAY SOLO VS BOTS NOW
+          </button>
+        </div>
+
+        <button id="btn-modes-open-party" class="btn-tactile btn-blue w-full py-2.5 text-xs font-black">
+          🌐 SWITCH TO ONLINE PARTY & ROOM CODES
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 3: SWORDS ARMORY
+       ========================================================================== -->
+  <div id="modal-swords" class="hidden fixed inset-0 z-30 bg-black/75 flex items-center justify-center p-3 sm:p-5">
+    <div class="tactical-panel max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-700 flex items-center justify-between bg-slate-900">
+        <div>
+          <h2 class="text-lg font-black text-white">SWORDS ARMORY</h2>
+          <p class="text-[11px] font-semibold text-slate-400">Unlock & equip forged 3D blades with your earned coins</p>
+        </div>
+        <button data-close-modal="modal-swords" class="btn-tactile btn-slate px-3 py-1.5 text-xs">✕ CLOSE</button>
+      </div>
+      <div id="swords-grid" class="p-4 sm:p-5 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 4: ABILITIES & SKILLS
+       ========================================================================== -->
+  <div id="modal-abilities" class="hidden fixed inset-0 z-30 bg-black/75 flex items-center justify-center p-3 sm:p-5">
+    <div class="tactical-panel max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-700 flex items-center justify-between bg-slate-900">
+        <div>
+          <h2 class="text-lg font-black text-white">COMBAT ABILITIES</h2>
+          <p class="text-[11px] font-semibold text-slate-400">Equip an active skill for Left-Click / Q</p>
+        </div>
+        <button data-close-modal="modal-abilities" class="btn-tactile btn-slate px-3 py-1.5 text-xs">✕ CLOSE</button>
+      </div>
+      <div id="abilities-grid" class="p-4 sm:p-5 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 5: BROWSER COOKIE SAVE DATA & BACKUP TRANSFER
+       ========================================================================== -->
+  <div id="modal-save" class="hidden fixed inset-0 z-30 bg-black/75 flex items-center justify-center p-3 sm:p-5">
+    <div class="tactical-panel max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-700 flex items-center justify-between bg-slate-900">
+        <div>
+          <h2 class="text-lg font-black text-white">BROWSER COOKIE SAVE DATA</h2>
+          <p class="text-[11px] font-semibold text-slate-400">1-Year Cookie Persistence + Base64 Save Code Backup</p>
+        </div>
+        <button data-close-modal="modal-save" class="btn-tactile btn-slate px-3 py-1.5 text-xs">✕ CLOSE</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex flex-col gap-3.5 text-xs">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+          <div class="tactical-subcard p-2.5">
+            <div class="text-[10px] font-extrabold text-slate-400">COINS</div>
+            <div id="save-stat-coins" class="font-mono-num text-base font-black text-amber-400 mt-0.5">250</div>
+          </div>
+          <div class="tactical-subcard p-2.5">
+            <div class="text-[10px] font-extrabold text-slate-400">WINS</div>
+            <div id="save-stat-wins" class="font-mono-num text-base font-black text-emerald-400 mt-0.5">0</div>
+          </div>
+          <div class="tactical-subcard p-2.5">
+            <div class="text-[10px] font-extrabold text-slate-400">ELIMS</div>
+            <div id="save-stat-elims" class="font-mono-num text-base font-black text-blue-400 mt-0.5">0</div>
+          </div>
+          <div class="tactical-subcard p-2.5">
+            <div class="text-[10px] font-extrabold text-slate-400">PEAK SPEED</div>
+            <div id="save-stat-peak" class="font-mono-num text-base font-black text-white mt-0.5">0 KM/H</div>
+          </div>
+        </div>
+
+        <div id="save-cookie-status" class="tactical-subcard p-3 font-mono-num text-[11px] text-emerald-400">
+          Cookie Status: Active (blade_ball_3d_progress)
+        </div>
+
+        <div class="tactical-subcard p-3.5 flex flex-col gap-2">
+          <label class="font-extrabold text-slate-300">Saved Nickname</label>
+          <div class="flex gap-2">
+            <input id="input-player-nickname" type="text" maxlength="16" class="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white font-extrabold" />
+            <button id="btn-save-nickname" class="btn-tactile btn-blue px-3 py-2 text-xs">SAVE NAME</button>
+            <button id="btn-force-cookie-save" class="btn-tactile btn-emerald px-3 py-2 text-xs">SAVE NOW</button>
+          </div>
+        </div>
+
+        <div class="tactical-subcard p-3.5 flex flex-col gap-2">
+          <label class="font-extrabold text-slate-300">Export / Import Save Code</label>
+          <input id="input-save-code" type="text" placeholder="Paste Base64 save code here or click Copy Save Code..." class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 font-mono-num text-[11px] text-slate-200" />
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-export-save-code" class="btn-tactile btn-slate py-2 text-xs">COPY SAVE CODE</button>
+            <button id="btn-import-save-code" class="btn-tactile btn-amber py-2 text-xs">LOAD SAVE CODE</button>
+          </div>
+        </div>
+
+        <button id="btn-reset-cookie-data" class="btn-tactile btn-crimson w-full py-2.5 text-xs font-black">
+          RESET PROGRESS (CLEAR COOKIE)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 6: EXPANDED SETTINGS, PROFILE, CONTROLS & AUDIO
+       ========================================================================== -->
+  <div id="modal-settings" class="hidden fixed inset-0 z-30 bg-black/75 flex items-center justify-center p-3 sm:p-5">
+    <div class="tactical-panel max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-3.5 border-b border-slate-700 flex items-center justify-between bg-slate-900">
+        <div>
+          <h2 class="text-lg font-black text-white">GAME SETTINGS & PROFILE</h2>
+          <p class="text-[11px] font-semibold text-slate-400">All changes save automatically to your browser cookie</p>
+        </div>
+        <button data-close-modal="modal-settings" class="btn-tactile btn-slate px-3 py-1.5 text-xs">✕ CLOSE</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex flex-col gap-3.5 text-xs">
+        <!-- 1. Player Profile & Fighter Color -->
+        <div class="tactical-subcard p-3.5 flex flex-col gap-2.5">
+          <div class="text-[11px] font-black uppercase tracking-wider text-blue-400">Player Identity & Fighter Armor</div>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input id="settings-username-input" type="text" maxlength="16" placeholder="Enter username..." class="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white font-extrabold text-xs focus:outline-none focus:border-blue-400" />
+            <button id="btn-settings-apply-name" class="btn-tactile btn-emerald px-4 py-2 text-xs font-black whitespace-nowrap">
+              UPDATE USERNAME
+            </button>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <span class="font-extrabold text-slate-300">Armor & Cape Color:</span>
+            <div id="settings-palette-swatches" class="flex items-center gap-1.5"></div>
+          </div>
+        </div>
+
+        <!-- 2. Mouse & Camera Controls -->
+        <div class="tactical-subcard p-3.5 flex flex-col gap-2.5">
+          <div class="text-[11px] font-black uppercase tracking-wider text-amber-400">Mouse, Camera & Touch Controls</div>
+
+          <div class="flex flex-col gap-1">
+            <label class="font-extrabold text-slate-300">Mouse Click Binding (Right-Click Drag = Look Around)</label>
+            <select id="select-mouse-scheme" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-xs font-extrabold text-white">
+              <option value="lmb_ability">Left Click: Dash / Ability • Right Click Drag: Look Around • F/E: Parry</option>
+              <option value="lmb_parry">Left Click: Parry • Right Click Drag: Look Around • Q: Dash / Ability</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between font-extrabold text-slate-300">
+                <span>Camera Sensitivity</span>
+                <span id="settings-sens-val" class="font-mono-num text-blue-400">1.0x</span>
+              </div>
+              <input id="slider-cam-sens" type="range" min="0.3" max="2.2" step="0.1" value="1.0" class="w-full accent-blue-500" />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <div class="flex justify-between font-extrabold text-slate-300">
+                <span>Field of View (FOV)</span>
+                <span id="settings-fov-val" class="font-mono-num text-blue-400">62°</span>
+              </div>
+              <input id="slider-cam-fov" type="range" min="52" max="86" step="2" value="62" class="w-full accent-blue-500" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button id="btn-settings-touch-mode" class="btn-tactile btn-slate py-2 text-xs font-black">
+              MOBILE TOUCH: AUTO
+            </button>
+            <button id="btn-settings-screen-shake" class="btn-tactile btn-slate py-2 text-xs font-black">
+              IMPACT SHAKE: ON
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Graphics & Audio -->
+        <div class="tactical-subcard p-3.5 flex flex-col gap-2.5">
+          <div class="text-[11px] font-black uppercase tracking-wider text-emerald-400">Graphics & Sound</div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <button id="btn-settings-gfx" class="btn-tactile btn-slate py-2 text-xs font-black">
+              QUALITY: HIGH
+            </button>
+            <button id="btn-settings-fps-vis" class="btn-tactile btn-slate py-2 text-xs font-black">
+              FPS COUNTER: ON
+            </button>
+            <button id="btn-toggle-sound" class="btn-tactile btn-blue py-2 text-xs font-black col-span-2 sm:col-span-1">
+              SFX: ON
+            </button>
+          </div>
+
+          <div class="flex flex-col gap-1 pt-1">
+            <div class="flex justify-between font-extrabold text-slate-300">
+              <span>Sound Effects Volume</span>
+              <span id="settings-vol-val" class="font-mono-num text-emerald-400">100%</span>
+            </div>
+            <input id="slider-sfx-vol" type="range" min="0" max="100" step="5" value="100" class="w-full accent-emerald-500" />
+          </div>
+        </div>
+
+        <!-- Dynamic Keybind Summary -->
+        <div id="settings-keybind-summary" class="tactical-subcard p-3 flex flex-col gap-1 text-[11px] text-slate-300 bg-slate-900">
+          <div><strong class="text-white">Move Character:</strong> W A S D / Arrow Keys / Mobile Left Stick</div>
+          <div><strong class="text-white">Look Around:</strong> Hold Right Click + Drag Mouse (or Drag Screen on Touch)</div>
+          <div><strong class="text-amber-300">Dash / Ability:</strong> Left Click (LMB) or Q / Shift</div>
+          <div><strong class="text-blue-300">Parry Blade:</strong> F / E Key or Bottom Parry Button</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 7: ELIMINATION OVERLAY (INSTANT EXIT TO LOBBY IF BOTS ARE IN SERVER)
+       ========================================================================== -->
+  <div id="death-exit-modal" class="hidden fixed inset-0 z-32 bg-black/65 flex items-center justify-center p-4">
+    <div class="tactical-panel max-w-md w-full p-5 flex flex-col items-center text-center gap-3.5">
+      <div class="px-3 py-1 rounded bg-red-600 text-white text-xs font-black tracking-wider">ELIMINATED</div>
+      <h2 id="death-title" class="text-2xl font-black text-white">YOU WERE ELIMINATED!</h2>
+      <p id="death-subtitle" class="text-xs font-semibold text-slate-300">
+        Spectating the remaining fighters in the arena.
+      </p>
+
+      <!-- Instant Exit Box Shown Whenever AI Bots Are in the Match -->
+      <div id="death-bot-exit-box" class="w-full p-3 rounded-xl bg-amber-500/15 border-2 border-amber-500 flex flex-col gap-2">
+        <div class="text-xs font-black text-amber-300">[ ! ] BOTS ARE PRESENT IN THIS MATCH</div>
+        <button id="btn-death-exit-lobby" class="btn-tactile btn-emerald w-full py-3 text-sm font-black">
+          EXIT TO LOBBY NOW
+        </button>
+      </div>
+
+      <button id="btn-death-spectate" class="btn-tactile btn-slate w-full py-2.5 text-xs font-extrabold">
+        SPECTATE REMAINING FIGHTERS
+      </button>
+
+      <button id="btn-death-leave-early" class="btn-tactile btn-crimson w-full py-2 text-[11px] font-extrabold">
+        LEAVE MATCH & RETURN TO LOBBY
+      </button>
+    </div>
+  </div>
+
+  <!-- Floating Spectate Exit Bar -->
+  <button id="btn-spectate-exit" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-30 btn-tactile btn-emerald px-5 py-2.5 text-xs sm:text-sm font-black shadow-xl">
+    [ ! BOTS PRESENT ] EXIT TO LOBBY
+  </button>
+
+  <!-- ==========================================================================
+       MODAL 8: VICTORY & MATCH STANDINGS WINNING SCREEN
+       ========================================================================== -->
+  <div id="round-summary-modal" class="hidden fixed inset-0 z-35 bg-black/75 flex items-center justify-center p-3 sm:p-5">
+    <div class="tactical-panel max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-700 bg-slate-900 flex flex-col items-center text-center gap-1.5">
+        <div id="summary-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-amber-500 text-slate-950 text-xs font-black tracking-wider">
+          <span>🏆</span>
+          <span>VICTORY • 1ST PLACE</span>
+        </div>
+        <h2 id="summary-winner-text" class="text-2xl sm:text-3xl font-black tracking-tight text-white">
+          CHAMPION: PLAYER
+        </h2>
+        <p id="summary-subtext" class="text-xs font-bold text-slate-300">
+          Last Fighter Standing in the Arena
+        </p>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex flex-col gap-3.5">
+        <div class="tactical-subcard p-3">
+          <div class="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-wider text-slate-400 pb-2 mb-2 border-b border-slate-700">
+            <span>Final Match Standings</span>
+            <span id="summary-total-fighters" class="font-mono-num text-slate-300">0 Fighters</span>
+          </div>
+          <div id="summary-standings-list" class="flex flex-col gap-1.5 max-h-44 overflow-y-auto"></div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+          <div class="tactical-subcard p-2.5">
+            <div class="text-[10px] font-extrabold text-slate-400">COINS EARNED</div>
+            <div id="summary-coins" class="font-mono-num text-base font-black text-amber-400 mt-0.5">+60</div>
+          </div>
+          <div class="tactical-subcard p-2.5">
+            <div class="text-[10px] font-extrabold text-slate-400">YOUR ELIMS</div>
+            <div id="summary-elims" class="font-mono-num text-base font-black text-emerald-400 mt-0.5">0</div>
+          </div>
+          <div class="tactical-subcard p-2.5">
+            <div class="text-[10px] font-extrabold text-slate-400">PEAK SPEED</div>
+            <div id="summary-speed" class="font-mono-num text-base font-black text-blue-400 mt-0.5">0 KM/H</div>
+          </div>
+          <div class="tactical-subcard p-2.5">
+            <div class="text-[10px] font-extrabold text-slate-400">TOTAL WINS</div>
+            <div id="summary-total-wins" class="font-mono-num text-base font-black text-white mt-0.5">0</div>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center gap-2.5 pt-1">
+          <div id="summary-auto-return-text" class="w-full sm:w-auto text-center font-mono-num text-xs font-extrabold text-slate-400 px-3 py-2.5 rounded-lg bg-slate-900 border border-slate-700">
+            LOBBY IN 10s
+          </div>
+          <button id="btn-summary-lobby" class="btn-tactile btn-emerald flex-1 w-full py-3 text-sm font-black">
+            RETURN TO SKY LOBBY NOW
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       COMPLETE SELF-CONTAINED BLADE BALL 3D GAME ENGINE
+       ========================================================================== -->
+  <script>
+    'use strict';
+
+    /* ============================================================================
+       1. CATALOGS & PALETTES
+       ============================================================================ */
+    const SWORD_CATALOG = [
+      { id: 'katana', name: 'Forged Katana', cost: 0, bladeColor: 0xe2e8f0, guardColor: 0xd97706, desc: 'Balanced tempered steel blade with brass tsuba.' },
+      { id: 'broadsword', name: 'Royal Broadsword', cost: 150, bladeColor: 0x93c5fd, guardColor: 0xfbbf24, desc: 'Heavy knightly greatsword with sapphire fuller.' },
+      { id: 'sunblade', name: 'Sunblade Claymore', cost: 320, bladeColor: 0xfde047, guardColor: 0xb45309, desc: 'Gilded solar edge forged in the Sky Sanctuary.' },
+      { id: 'reaper', name: 'Obsidian Reaper', cost: 500, bladeColor: 0x334155, guardColor: 0xef4444, desc: 'Volcanic glass blade with crimson crossguard.' },
+      { id: 'rapier', name: 'Celestial Rapier', cost: 750, bladeColor: 0x6ee7b7, guardColor: 0xf8fafc, desc: 'Ultra-light precision dueling blade.' }
+    ];
+
+    const ABILITY_CATALOG = [
+      { id: 'dash', name: 'Surge Dash', cost: 0, cd: 6.0, desc: 'Burst forward at high speed to reposition or dodge.' },
+      { id: 'forcefield', name: 'Aegis Shield', cost: 180, cd: 11.0, desc: 'Auto-deflects the next incoming ball strike for 2.2s.' },
+      { id: 'raging', name: 'Raging Deflect', cost: 280, cd: 9.0, desc: 'Your next parry launches the ball at +45% velocity.' },
+      { id: 'telekinesis', name: 'Telekinesis', cost: 400, cd: 12.0, desc: 'Freezes the ball mid-air for 1.1s then redirects it.' },
+      { id: 'invis', name: 'Shadow Cloak', cost: 520, cd: 13.0, desc: 'Vanish briefly so the ball switches to another target.' },
+      { id: 'superjump', name: 'Sky Leap', cost: 650, cd: 7.5, desc: 'Launch high above the arena floor to gain aerial angle.' }
+    ];
+
+    const FIGHTER_PALETTES = [
+      { torso: 0x2563eb, cape: 0x1d4ed8, limbs: 0x1e293b, visor: 0x38bdf8 },
+      { torso: 0xdc2626, cape: 0x991b1b, limbs: 0x1f2937, visor: 0xfca5a5 },
+      { torso: 0x059669, cape: 0x065f46, limbs: 0x1e293b, visor: 0x6ee7b7 },
+      { torso: 0xd97706, cape: 0x92400e, limbs: 0x292524, visor: 0xfde047 },
+      { torso: 0x7c3aed, cape: 0x5b21b6, limbs: 0x1e1b4b, visor: 0xc4b5fd },
+      { torso: 0x0891b2, cape: 0x155e75, limbs: 0x0f172a, visor: 0x67e8f9 },
+      { torso: 0xe11d48, cape: 0x9f1239, limbs: 0x18181b, visor: 0xfda4af },
+      { torso: 0x4f46e5, cape: 0x3730a3, limbs: 0x1e293b, visor: 0xa5b4fc }
+    ];
+
+    /* ============================================================================
+       2. BROWSER COOKIE SAVE MANAGER (1-YEAR COOKIE + FALLBACK MIRROR)
+       ============================================================================ */
+    class CookieSaveManager {
+      constructor() {
+        this.cookieName = 'blade_ball_3d_progress';
+        this.mirrorKey = 'bb3d_cookie_mirror_v1';
+        this.defaultProfile = {
+          nickname: 'Blade_' + Math.floor(100 + Math.random() * 899),
+          coins: 250,
+          wins: 0,
+          elims: 0,
+          matches: 0,
+          peakSpeed: 0,
+          unlockedSwords: ['katana'],
+          equippedSword: 'katana',
+          unlockedAbilities: ['dash'],
+          equippedAbility: 'dash',
+          paletteIdx: 0,
+          mouseScheme: 'lmb_ability',
+          camSensitivity: 1.0,
+          camFov: 62,
+          screenShake: true,
+          showFps: true,
+          sfxVolume: 1.0,
+          gfx: 'HIGH',
+          soundOn: true,
+          touchPref: 'AUTO'
+        };
+      }
+
+      load() {
+        let parsed = null;
+        try {
+          const pairs = document.cookie.split(';');
+          for (const pair of pairs) {
+            const idx = pair.indexOf('=');
+            if (idx > -1) {
+              const k = pair.slice(0, idx).trim();
+              if (k === this.cookieName) {
+                parsed = JSON.parse(decodeURIComponent(pair.slice(idx + 1).trim()));
+                break;
+              }
+            }
+          }
+        } catch (err) {
+          parsed = null;
+        }
+
+        if (!parsed) {
+          try {
+            const raw = localStorage.getItem(this.mirrorKey);
+            if (raw) parsed = JSON.parse(raw);
+          } catch (err) {
+            parsed = null;
+          }
+        }
+
+        const merged = Object.assign({}, this.defaultProfile, parsed || {});
+        if (!Array.isArray(merged.unlockedSwords) || merged.unlockedSwords.length === 0) {
+          merged.unlockedSwords = ['katana'];
+        }
+        if (!Array.isArray(merged.unlockedAbilities) || merged.unlockedAbilities.length === 0) {
+          merged.unlockedAbilities = ['dash'];
+        }
+        return merged;
+      }
+
+      save(profile, flash = true) {
+        const json = JSON.stringify(profile);
+        try {
+          document.cookie = `${this.cookieName}=${encodeURIComponent(json)}; path=/; SameSite=Lax; max-age=31536000`;
+        } catch (err) {
+          // Ignore cookie write restriction in sandboxed frames
+        }
+        try {
+          localStorage.setItem(this.mirrorKey, json);
+        } catch (err) {
+          // Ignore storage restriction
+        }
+        if (flash) this.flashSavedBadge();
+      }
+
+      flashSavedBadge() {
+        const badge = document.getElementById('cookie-saved-badge');
+        if (!badge) return;
+        badge.classList.remove('opacity-0');
+        badge.classList.add('opacity-100');
+        clearTimeout(this._badgeTimer);
+        this._badgeTimer = setTimeout(() => {
+          badge.classList.remove('opacity-100');
+          badge.classList.add('opacity-0');
+        }, 1400);
+      }
+
+      exportCode(profile) {
+        return btoa(unescape(encodeURIComponent(JSON.stringify(profile))));
+      }
+
+      importCode(codeStr) {
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(codeStr.trim()))));
+        return Object.assign({}, this.defaultProfile, decoded);
+      }
+
+      reset() {
+        try {
+          document.cookie = `${this.cookieName}=; path=/; SameSite=Lax; max-age=0`;
+        } catch (err) {}
+        try {
+          localStorage.removeItem(this.mirrorKey);
+        } catch (err) {}
+        return Object.assign({}, this.defaultProfile, {
+          unlockedSwords: ['katana'],
+          unlockedAbilities: ['dash']
+        });
+      }
+    }
+
+    /* ============================================================================
+       3. PROCEDURAL WEB AUDIO SOUND ENGINE (NO EXTERNAL AUDIO URLS)
+       ============================================================================ */
+    class SoundEngine {
+      constructor() {
+        this.enabled = true;
+        this.volume = 1.0;
+        this.ctx = null;
+      }
+
+      ensureCtx() {
+        if (!this.enabled || this.volume <= 0.01) return null;
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+        return this.ctx;
+      }
+
+      playTone(freq, endFreq, duration, type = 'triangle', gainVal = 0.16) {
+        const ctx = this.ensureCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const finalGain = Math.max(0.002, gainVal * this.volume);
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+        gain.gain.setValueAtTime(finalGain, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      }
+
+      playClick() {
+        this.playTone(540, 760, 0.07, 'sine', 0.12);
+      }
+
+      playParry(speed = 25) {
+        const pitchBoost = Math.min(280, speed * 3.2);
+        this.playTone(460 + pitchBoost, 1180 + pitchBoost, 0.16, 'sawtooth', 0.18);
+        this.playTone(920 + pitchBoost, 1520 + pitchBoost, 0.2, 'triangle', 0.14);
+      }
+
+      playAbility() {
+        this.playTone(300, 880, 0.22, 'sine', 0.18);
+      }
+
+      playElimination() {
+        this.playTone(190, 44, 0.42, 'sawtooth', 0.26);
+        this.playTone(120, 35, 0.48, 'square', 0.18);
+      }
+
+      playWin() {
+        this.playTone(523.25, 659.25, 0.18, 'triangle', 0.18);
+        setTimeout(() => this.playTone(659.25, 783.99, 0.18, 'triangle', 0.18), 110);
+        setTimeout(() => this.playTone(783.99, 1046.5, 0.34, 'triangle', 0.22), 220);
+      }
+    }
+
+    /* ============================================================================
+       4. PROCEDURAL PBR TEXTURE GENERATOR (ALBEDO + BUMP MAPS)
+       ============================================================================ */
+    class ProceduralTextures {
+      static createMarble() {
+        const c = document.createElement('canvas');
+        c.width = 512;
+        c.height = 512;
+        const ctx = c.getContext('2d');
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Tile grid & subtle veining
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 3;
+        for (let i = 0; i <= 512; i += 64) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i, 512);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, i);
+          ctx.lineTo(512, i);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = 'rgba(100, 116, 139, 0.22)';
+        ctx.lineWidth = 2;
+        for (let v = 0; v < 28; v++) {
+          ctx.beginPath();
+          let x = Math.random() * 512;
+          let y = Math.random() * 512;
+          ctx.moveTo(x, y);
+          for (let s = 0; s < 6; s++) {
+            x += (Math.random() - 0.5) * 90;
+            y += (Math.random() - 0.5) * 90;
+            ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+        }
+
+        const map = new THREE.CanvasTexture(c);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        map.repeat.set(6, 6);
+        return { map, bumpMap: map };
+      }
+
+      static createSandstone() {
+        const c = document.createElement('canvas');
+        c.width = 512;
+        c.height = 512;
+        const ctx = c.getContext('2d');
+
+        ctx.fillStyle = '#d97706';
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.fillStyle = '#f59e0b';
+        for (let y = 0; y < 512; y += 32) {
+          ctx.fillRect(0, y, 512, 14);
+        }
+        ctx.strokeStyle = '#92400e';
+        ctx.lineWidth = 3;
+        for (let y = 0; y < 512; y += 64) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(512, y);
+          ctx.stroke();
+          const offset = (y / 64) % 2 === 0 ? 0 : 64;
+          for (let x = offset; x < 512; x += 128) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + 64);
+            ctx.stroke();
+          }
+        }
+
+        const map = new THREE.CanvasTexture(c);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        map.repeat.set(5, 5);
+        return { map, bumpMap: map };
+      }
+
+      static createCobble() {
+        const c = document.createElement('canvas');
+        c.width = 512;
+        c.height = 512;
+        const ctx = c.getContext('2d');
+
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(0, 0, 512, 512);
+
+        for (let y = 0; y < 512; y += 48) {
+          for (let x = 0; x < 512; x += 48) {
+            const shade = 115 + ((x * 7 + y * 13) % 45);
+            ctx.fillStyle = `rgb(${shade}, ${shade + 6}, ${shade + 14})`;
+            ctx.beginPath();
+            ctx.roundRect(x + 3, y + 3, 42, 42, 8);
+            ctx.fill();
+          }
+        }
+
+        const map = new THREE.CanvasTexture(c);
+        map.wrapS = map.wrapT = THREE.RepeatWrapping;
+        map.repeat.set(6, 6);
+        return { map, bumpMap: map };
+      }
+    }
+
+    /* ============================================================================
+       5. ZERO-ALLOCATION POOLED VFX & HOMING BALL ENGINE
+       ============================================================================ */
+    class VFXEngine {
+      constructor(scene) {
+        this.scene = scene;
+
+        // Homing Ball Group
+        this.ballGroup = new THREE.Group();
+        this.ballCore = new THREE.Mesh(
+          new THREE.SphereGeometry(1.05, 24, 24),
+          new THREE.MeshStandardMaterial({
+            color: 0xef4444,
+            emissive: 0xdc2626,
+            emissiveIntensity: 0.65,
+            roughness: 0.25,
+            metalness: 0.3
+          })
+        );
+        this.ballRingA = new THREE.Mesh(
+          new THREE.TorusGeometry(1.38, 0.08, 10, 32),
+          new THREE.MeshBasicMaterial({ color: 0xffffff })
+        );
+        this.ballRingB = new THREE.Mesh(
+          new THREE.TorusGeometry(1.52, 0.06, 10, 32),
+          new THREE.MeshBasicMaterial({ color: 0xfde047 })
+        );
+        this.ballRingB.rotation.x = Math.PI / 2;
+        this.ballGroup.add(this.ballCore, this.ballRingA, this.ballRingB);
+        this.ballGroup.visible = false;
+        this.scene.add(this.ballGroup);
+
+        // Ball Trail Nodes (Pooled)
+        this.trailNodes = [];
+        const trailGeo = new THREE.SphereGeometry(0.68, 10, 10);
+        for (let i = 0; i < 18; i++) {
+          const mat = new THREE.MeshBasicMaterial({
+            color: 0xf87171,
+            transparent: true,
+            opacity: (1 - i / 18) * 0.48
+          });
+          const mesh = new THREE.Mesh(trailGeo, mat);
+          mesh.visible = false;
+          mesh.scale.setScalar(1 - i * 0.042);
+          this.scene.add(mesh);
+          this.trailNodes.push(mesh);
+        }
+
+        // Shockwave Ring Pool
+        this.shockwaves = [];
+        const ringGeo = new THREE.RingGeometry(0.7, 1.0, 32);
+        for (let i = 0; i < 12; i++) {
+          const mat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0
+          });
+          const mesh = new THREE.Mesh(ringGeo, mat);
+          mesh.rotation.x = -Math.PI / 2;
+          mesh.visible = false;
+          this.scene.add(mesh);
+          this.shockwaves.push({ mesh, life: 0, maxLife: 0.4, maxScale: 6 });
+        }
+
+        // Spark Burst Pool
+        this.sparks = [];
+        const sparkGeo = new THREE.BoxGeometry(0.24, 0.24, 0.24);
+        for (let i = 0; i < 64; i++) {
+          const mat = new THREE.MeshBasicMaterial({ color: 0xfde047 });
+          const mesh = new THREE.Mesh(sparkGeo, mat);
+          mesh.visible = false;
+          this.scene.add(mesh);
+          this.sparks.push({ mesh, vel: new THREE.Vector3(), life: 0 });
+        }
+      }
+
+      setBallVisible(vis) {
+        this.ballGroup.visible = vis;
+        if (!vis) {
+          for (const node of this.trailNodes) node.visible = false;
+        }
+      }
+
+      setBallColor(isTargetingLocal) {
+        if (isTargetingLocal) {
+          this.ballCore.material.color.setHex(0xef4444);
+          this.ballCore.material.emissive.setHex(0xdc2626);
+          this.ballRingA.material.color.setHex(0xfef08a);
+        } else {
+          this.ballCore.material.color.setHex(0x3b82f6);
+          this.ballCore.material.emissive.setHex(0x1d4ed8);
+          this.ballRingA.material.color.setHex(0xffffff);
+        }
+      }
+
+      spawnShockwave(pos, colorHex = 0x38bdf8, maxScale = 6) {
+        const slot = this.shockwaves.find(s => s.life <= 0);
+        if (!slot) return;
+        slot.mesh.position.set(pos.x, Math.max(0.15, pos.y), pos.z);
+        slot.mesh.material.color.setHex(colorHex);
+        slot.mesh.material.opacity = 0.85;
+        slot.mesh.scale.setScalar(0.5);
+        slot.mesh.visible = true;
+        slot.life = 0.36;
+        slot.maxLife = 0.36;
+        slot.maxScale = maxScale;
+      }
+
+      spawnBurst(pos, colorHex = 0xfde047, count = 14) {
+        let spawned = 0;
+        for (const s of this.sparks) {
+          if (s.life <= 0) {
+            s.mesh.position.copy(pos);
+            s.mesh.material.color.setHex(colorHex);
+            s.mesh.visible = true;
+            const angle = Math.random() * Math.PI * 2;
+            const spd = 6 + Math.random() * 14;
+            s.vel.set(Math.cos(angle) * spd, 4 + Math.random() * 10, Math.sin(angle) * spd);
+            s.life = 0.42 + Math.random() * 0.22;
+            spawned++;
+            if (spawned >= count) break;
+          }
+        }
+      }
+
+      update(dt, ballState) {
+        if (ballState.active && this.ballGroup.visible) {
+          // Shift trail nodes
+          for (let i = this.trailNodes.length - 1; i > 0; i--) {
+            this.trailNodes[i].position.copy(this.trailNodes[i - 1].position);
+            this.trailNodes[i].visible = this.trailNodes[i - 1].visible;
+            this.trailNodes[i].material.color.copy(this.ballCore.material.color);
+          }
+          this.trailNodes[0].position.copy(ballState.pos);
+          this.trailNodes[0].visible = true;
+
+          this.ballGroup.position.copy(ballState.pos);
+          this.ballRingA.rotation.y += dt * 7;
+          this.ballRingA.rotation.x += dt * 4;
+          this.ballRingB.rotation.z -= dt * 6;
+        }
+
+        for (const sw of this.shockwaves) {
+          if (sw.life > 0) {
+            sw.life -= dt;
+            const t = 1 - Math.max(0, sw.life / sw.maxLife);
+            sw.mesh.scale.setScalar(0.5 + t * sw.maxScale);
+            sw.mesh.material.opacity = (1 - t) * 0.8;
+            if (sw.life <= 0) sw.mesh.visible = false;
+          }
+        }
+
+        for (const sp of this.sparks) {
+          if (sp.life > 0) {
+            sp.life -= dt;
+            sp.vel.y -= 24 * dt;
+            sp.mesh.position.addScaledVector(sp.vel, dt);
+            sp.mesh.rotation.x += dt * 8;
+            sp.mesh.rotation.y += dt * 8;
+            if (sp.life <= 0) sp.mesh.visible = false;
+          }
+        }
+      }
+    }
+
+    /* ============================================================================
+       6. ARTICULATED 3D FIGHTER RIG WITH FLOWING CAPE & FORGED SWORDS
+       ============================================================================ */
+    class FighterRig {
+      constructor(scene, spec, swordSpec) {
+        this.scene = scene;
+        this.id = spec.id;
+        this.name = spec.name;
+        this.isLocal = Boolean(spec.isLocal);
+        this.isBot = Boolean(spec.isBot);
+        this.diff = spec.diff || 'pro';
+        this.alive = true;
+        this.elims = 0;
+        this.elimOrder = 0;
+
+        this.pos = spec.spawnPos ? spec.spawnPos.clone() : new THREE.Vector3(0, 0, 0);
+        this.vel = new THREE.Vector3();
+        this.yaw = 0;
+        this.onGround = true;
+
+        this.parryActiveTimer = 0;
+        this.parryCooldown = 0;
+        this.abilityCooldown = 0;
+        this.forcefieldTimer = 0;
+        this.ragingActive = false;
+        this.invisTimer = 0;
+        this.botReactionTimer = 0;
+
+        const pal = FIGHTER_PALETTES[(spec.paletteIdx || 0) % FIGHTER_PALETTES.length];
+        this.group = new THREE.Group();
+        this.group.position.copy(this.pos);
+
+        // Contact Shadow Disc
+        const shadowDisc = new THREE.Mesh(
+          new THREE.CircleGeometry(1.15, 20),
+          new THREE.MeshBasicMaterial({ color: 0x090d16, transparent: true, opacity: 0.42 })
+        );
+        shadowDisc.rotation.x = -Math.PI / 2;
+        shadowDisc.position.y = 0.04;
+        this.group.add(shadowDisc);
+
+        // Torso & Shoulder Pauldrons
+        const torsoMat = new THREE.MeshStandardMaterial({ color: pal.torso, roughness: 0.42, metalness: 0.25 });
+        const limbMat = new THREE.MeshStandardMaterial({ color: pal.limbs, roughness: 0.6 });
+
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(1.25, 1.55, 0.72), torsoMat);
+        torso.position.y = 2.05;
+        torso.castShadow = true;
+
+        const pauldronL = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.42, 0.82), torsoMat);
+        pauldronL.position.set(-0.78, 2.65, 0);
+        const pauldronR = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.42, 0.82), torsoMat);
+        pauldronR.position.set(0.78, 2.65, 0);
+
+        // Head & Visor
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.92, 0.92), limbMat);
+        head.position.y = 3.35;
+        head.castShadow = true;
+
+        const visor = new THREE.Mesh(
+          new THREE.BoxGeometry(0.76, 0.26, 0.12),
+          new THREE.MeshStandardMaterial({ color: pal.visor, emissive: pal.visor, emissiveIntensity: 0.45 })
+        );
+        visor.position.set(0, 3.38, 0.45);
+
+        // Flowing Cape
+        this.cape = new THREE.Mesh(
+          new THREE.BoxGeometry(1.1, 1.65, 0.1),
+          new THREE.MeshStandardMaterial({ color: pal.cape, roughness: 0.65 })
+        );
+        this.cape.position.set(0, 1.95, -0.45);
+        this.cape.rotation.x = 0.22;
+
+        // Legs
+        this.legL = new THREE.Mesh(new THREE.BoxGeometry(0.44, 1.25, 0.46), limbMat);
+        this.legL.position.set(-0.34, 0.65, 0);
+        this.legR = new THREE.Mesh(new THREE.BoxGeometry(0.44, 1.25, 0.46), limbMat);
+        this.legR.position.set(0.34, 0.65, 0);
+
+        // Sword Arm Pivot & Multi-Part 3D Sword
+        this.swordPivot = new THREE.Group();
+        this.swordPivot.position.set(0.88, 2.45, 0.15);
+
+        const sw = swordSpec || SWORD_CATALOG[0];
+        const hilt = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.08, 0.08, 0.65, 8),
+          new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 })
+        );
+        hilt.rotation.x = Math.PI / 2;
+        hilt.position.z = 0.25;
+
+        const guard = new THREE.Mesh(
+          new THREE.BoxGeometry(0.55, 0.16, 0.14),
+          new THREE.MeshStandardMaterial({ color: sw.guardColor, metalness: 0.8, roughness: 0.25 })
+        );
+        guard.position.z = 0.56;
+
+        const blade = new THREE.Mesh(
+          new THREE.BoxGeometry(0.11, 0.24, 2.35),
+          new THREE.MeshStandardMaterial({ color: sw.bladeColor, metalness: 0.75, roughness: 0.2 })
+        );
+        blade.position.z = 1.78;
+        blade.castShadow = true;
+
+        this.swordPivot.add(hilt, guard, blade);
+
+        // Parry Shield Bubble & Aegis Forcefield
+        this.parryBubble = new THREE.Mesh(
+          new THREE.SphereGeometry(2.15, 18, 18),
+          new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.28, wireframe: true })
+        );
+        this.parryBubble.position.y = 2.1;
+        this.parryBubble.visible = false;
+
+        this.aegisBubble = new THREE.Mesh(
+          new THREE.SphereGeometry(2.35, 18, 18),
+          new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.24 })
+        );
+        this.aegisBubble.position.y = 2.1;
+        this.aegisBubble.visible = false;
+
+        // Overhead Nameplate Sprite
+        this.nameSprite = this.createNameplate();
+        this.nameSprite.position.set(0, 4.45, 0);
+
+        this.group.add(
+          torso, pauldronL, pauldronR, head, visor,
+          this.cape, this.legL, this.legR,
+          this.swordPivot, this.parryBubble, this.aegisBubble, this.nameSprite
+        );
+
+        this.scene.add(this.group);
+      }
+
+      createNameplate() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 68;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        ctx.beginPath();
+        ctx.roundRect(14, 8, 292, 52, 12);
+        ctx.fill();
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = this.isLocal ? '#3b82f6' : (this.isBot ? '#f59e0b' : '#10b981');
+        ctx.stroke();
+
+        const tag = this.isLocal ? '' : (this.isBot ? '[BOT] ' : '[HUMAN] ');
+        ctx.font = '800 22px Inter, sans-serif';
+        ctx.fillStyle = this.isBot ? '#fde047' : '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText((tag + this.name).slice(0, 20), 160, 35);
+
+        const tex = new THREE.CanvasTexture(canvas);
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+        sprite.scale.set(4.4, 0.94, 1);
+        return sprite;
+      }
+
+      updateVisuals(dt, elapsed) {
+        if (!this.alive) return;
+        this.group.position.copy(this.pos);
+        this.group.rotation.y = this.yaw;
+
+        const horizSpeed = Math.hypot(this.vel.x, this.vel.z);
+        const stride = horizSpeed > 0.6 ? Math.sin(elapsed * 12) * 0.48 : 0;
+        this.legL.rotation.x = stride;
+        this.legR.rotation.x = -stride;
+        this.cape.rotation.x = 0.18 + Math.min(0.65, horizSpeed * 0.025) + Math.sin(elapsed * 6) * 0.05;
+
+        // Sword Slash Animation during Parry
+        if (this.parryActiveTimer > 0) {
+          this.swordPivot.rotation.y = Math.sin((1 - this.parryActiveTimer / 0.45) * Math.PI) * 1.9;
+          this.parryBubble.visible = true;
+        } else {
+          this.swordPivot.rotation.y = 0;
+          this.parryBubble.visible = false;
+        }
+
+        this.aegisBubble.visible = this.forcefieldTimer > 0;
+        this.group.visible = this.invisTimer <= 0 || this.isLocal;
+      }
+
+      dispose() {
+        this.scene.remove(this.group);
+      }
+    }
+
+    /* ============================================================================
+       7. ARCHITECTURAL WORLD BUILDER (SKY-ISLAND ARCHIPELAGO + 3 ARENAS)
+       ============================================================================ */
+    class WorldBuilder {
+      constructor(scene) {
+        this.scene = scene;
+        this.worldGroup = new THREE.Group();
+        this.scene.add(this.worldGroup);
+        this.portals = [];
+        this.animatedObjects = [];
+        this.arenaRadius = 38;
+
+        this.texMarble = ProceduralTextures.createMarble();
+        this.texSandstone = ProceduralTextures.createSandstone();
+        this.texCobble = ProceduralTextures.createCobble();
+      }
+
+      clear() {
+        while (this.worldGroup.children.length > 0) {
+          this.worldGroup.remove(this.worldGroup.children[0]);
+        }
+        this.portals = [];
+        this.animatedObjects = [];
+      }
+
+      buildLobby() {
+        this.clear();
+        this.arenaRadius = 38;
+        this.scene.background = new THREE.Color(0x7dd3fc);
+        this.scene.fog = new THREE.FogExp2(0xbae6fd, 0.0036);
+
+        // Main Floating Sanctuary Island Platform
+        const islandDeck = new THREE.Mesh(
+          new THREE.CylinderGeometry(39, 36.5, 3.4, 56),
+          new THREE.MeshStandardMaterial({
+            map: this.texMarble.map,
+            bumpMap: this.texMarble.bumpMap,
+            bumpScale: 0.08,
+            roughness: 0.52,
+            metalness: 0.1
+          })
+        );
+        islandDeck.position.y = -1.7;
+        islandDeck.receiveShadow = true;
+        this.worldGroup.add(islandDeck);
+
+        // Gold Rim Trim & Rocky Underbelly
+        const rimTrim = new THREE.Mesh(
+          new THREE.TorusGeometry(39, 0.45, 10, 64),
+          new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.75, roughness: 0.3 })
+        );
+        rimTrim.rotation.x = Math.PI / 2;
+        rimTrim.position.y = 0.05;
+        this.worldGroup.add(rimTrim);
+
+        const underRock = new THREE.Mesh(
+          new THREE.ConeGeometry(35.5, 25, 20),
+          new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.9 })
+        );
+        underRock.rotation.x = Math.PI;
+        underRock.position.y = -15.5;
+        this.worldGroup.add(underRock);
+
+        // Central Royal Sanctuary Dais & Brass Compass Medallion
+        const centralDais = new THREE.Mesh(
+          new THREE.CylinderGeometry(8.2, 9.2, 0.45, 36),
+          new THREE.MeshStandardMaterial({ map: this.texMarble.map, roughness: 0.45 })
+        );
+        centralDais.position.y = 0.22;
+        centralDais.receiveShadow = true;
+        this.worldGroup.add(centralDais);
+
+        const brassRing = new THREE.Mesh(
+          new THREE.RingGeometry(6.6, 7.8, 40),
+          new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.25, side: THREE.DoubleSide })
+        );
+        brassRing.rotation.x = -Math.PI / 2;
+        brassRing.position.y = 0.47;
+        this.worldGroup.add(brassRing);
+
+        // 4 Satellite Floating Sky-Islands Around the Sanctuary
+        const satelliteSpecs = [
+          { x: -56, y: 7, z: -38, r: 12, h: 11, hasPagoda: true },
+          { x: 58, y: 10, z: -34, r: 13.5, h: 13, hasPagoda: false },
+          { x: -52, y: -5, z: 34, r: 10, h: 9.5, hasPagoda: false },
+          { x: 54, y: 4, z: 36, r: 11.5, h: 10.5, hasPagoda: true }
+        ];
+        satelliteSpecs.forEach((sat, idx) => {
+          const satGroup = new THREE.Group();
+          satGroup.position.set(sat.x, sat.y, sat.z);
+
+          const topSlab = new THREE.Mesh(
+            new THREE.CylinderGeometry(sat.r, sat.r * 0.9, 2.0, 24),
+            new THREE.MeshStandardMaterial({ map: this.texMarble.map, roughness: 0.6 })
+          );
+          const grassCap = new THREE.Mesh(
+            new THREE.CylinderGeometry(sat.r * 0.88, sat.r * 0.88, 0.35, 24),
+            new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.8 })
+          );
+          grassCap.position.y = 1.05;
+
+          const rockCone = new THREE.Mesh(
+            new THREE.ConeGeometry(sat.r * 0.88, sat.h, 12),
+            new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.92 })
+          );
+          rockCone.rotation.x = Math.PI;
+          rockCone.position.y = -sat.h * 0.5 - 0.8;
+
+          satGroup.add(topSlab, grassCap, rockCone);
+
+          if (sat.hasPagoda) {
+            const shrine = new THREE.Mesh(
+              new THREE.BoxGeometry(4.2, 4.5, 4.2),
+              new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.5 })
+            );
+            shrine.position.y = 3.2;
+            const roof = new THREE.Mesh(
+              new THREE.ConeGeometry(4.4, 2.6, 4),
+              new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 })
+            );
+            roof.rotation.y = Math.PI / 4;
+            roof.position.y = 6.6;
+            satGroup.add(shrine, roof);
+          }
+
+          this.worldGroup.add(satGroup);
+          this.animatedObjects.push({ mesh: satGroup, baseY: sat.y, phase: idx * 1.7, amp: 1.1 });
+        });
+
+        // Volumetric Sky Cloud Banks Around Horizon (Instanced)
+        const cloudGeo = new THREE.BoxGeometry(16, 2.6, 10);
+        const cloudMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.95 });
+        const cloudInst = new THREE.InstancedMesh(cloudGeo, cloudMat, 14);
+        const cDummy = new THREE.Object3D();
+        for (let i = 0; i < 14; i++) {
+          const a = (i / 14) * Math.PI * 2;
+          const dist = 48 + (i % 3) * 18;
+          cDummy.position.set(Math.cos(a) * dist, -12 + (i % 4) * 5, Math.sin(a) * dist);
+          cDummy.rotation.y = a;
+          cDummy.scale.set(0.8 + (i % 3) * 0.45, 1, 0.8 + ((i + 1) % 3) * 0.4);
+          cDummy.updateMatrix();
+          cloudInst.setMatrixAt(i, cDummy.matrix);
+        }
+        this.worldGroup.add(cloudInst);
+
+        // Classical Perimeter Colonnade (InstancedMesh)
+        const colCount = 20;
+        const colGeo = new THREE.CylinderGeometry(0.62, 0.76, 7.2, 14);
+        const colMat = new THREE.MeshStandardMaterial({ map: this.texMarble.map, roughness: 0.45 });
+        const colInst = new THREE.InstancedMesh(colGeo, colMat, colCount);
+        colInst.castShadow = true;
+        colInst.receiveShadow = true;
+        const dummy = new THREE.Object3D();
+        for (let i = 0; i < colCount; i++) {
+          const a = (i / colCount) * Math.PI * 2;
+          dummy.position.set(Math.cos(a) * 36.2, 3.6, Math.sin(a) * 36.2);
+          dummy.rotation.set(0, 0, 0);
+          dummy.updateMatrix();
+          colInst.setMatrixAt(i, dummy.matrix);
+        }
+        this.worldGroup.add(colInst);
+
+        // Lush Stylized Sanctuary Trees in Courtyard Corners
+        const treeCoords = [
+          [-26, -15], [26, -15], [-25, 22], [25, 22]
+        ];
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
+        const leafMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.7 });
+        for (const [tx, tz] of treeCoords) {
+          const tree = new THREE.Group();
+          tree.position.set(tx, 0, tz);
+          const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.72, 4.5, 10), trunkMat);
+          trunk.position.y = 2.25;
+          trunk.castShadow = true;
+          const crownA = new THREE.Mesh(new THREE.DodecahedronGeometry(2.6, 1), leafMat);
+          crownA.position.set(0, 5.4, 0);
+          crownA.castShadow = true;
+          const crownB = new THREE.Mesh(new THREE.DodecahedronGeometry(1.9, 1), leafMat);
+          crownB.position.set(1.2, 4.6, 0.8);
+          tree.add(trunk, crownA, crownB);
+          this.worldGroup.add(tree);
+        }
+
+        // 5 Repositioned Grand Gamemode & Feature Portals with Walkways & Fire Braziers
+        const portalSpecs = [
+          { action: 'servers', label: 'ONLINE PARTY & ROOMS', sub: 'CREATE / JOIN CODE', color: 0x2563eb, pos: new THREE.Vector3(0, 0, -27) },
+          { action: 'solo_quick', label: 'SOLO VS AI BOTS', sub: 'INSTANT BOT ARENA', color: 0x10b981, pos: new THREE.Vector3(-16.5, 0, -21.5) },
+          { action: 'play', label: 'GAME MODES & MAPS', sub: 'SELECT ARENA', color: 0x06b6d4, pos: new THREE.Vector3(16.5, 0, -21.5) },
+          { action: 'swords', label: 'SWORDS ARMORY', sub: 'UNLOCK BLADES', color: 0xf59e0b, pos: new THREE.Vector3(-27.5, 0, 2) },
+          { action: 'abilities', label: 'ABILITIES & SKILLS', sub: 'EQUIP POWERS', color: 0xef4444, pos: new THREE.Vector3(27.5, 0, 2) }
+        ];
+
+        for (const p of portalSpecs) {
+          const pGroup = new THREE.Group();
+          pGroup.position.copy(p.pos);
+          pGroup.lookAt(0, 0, 3);
+
+          const walkLen = p.pos.length() - 9.0;
+          if (walkLen > 2) {
+            const walkway = new THREE.Mesh(
+              new THREE.BoxGeometry(3.2, 0.14, walkLen),
+              new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.55 })
+            );
+            walkway.position.set(0, 0.07, walkLen * 0.5 + 1.2);
+            walkway.receiveShadow = true;
+            pGroup.add(walkway);
+          }
+
+          const pillarMat = new THREE.MeshStandardMaterial({ map: this.texMarble.map, roughness: 0.4 });
+          const leftCol = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.68, 6.4, 14), pillarMat);
+          leftCol.position.set(-3.3, 3.2, 0);
+          leftCol.castShadow = true;
+
+          const rightCol = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.68, 6.4, 14), pillarMat);
+          rightCol.position.set(3.3, 3.2, 0);
+          rightCol.castShadow = true;
+
+          const arch = new THREE.Mesh(
+            new THREE.TorusGeometry(3.3, 0.48, 12, 28, Math.PI),
+            new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.65, roughness: 0.3 })
+          );
+          arch.position.y = 6.2;
+
+          const brazierMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8, roughness: 0.25 });
+          const flameMat = new THREE.MeshBasicMaterial({ color: p.color });
+          [-4.5, 4.5].forEach((bx, bi) => {
+            const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.35, 1.3, 12), brazierMat);
+            bowl.position.set(bx, 0.65, 0.6);
+            const flame = new THREE.Mesh(new THREE.OctahedronGeometry(0.52, 0), flameMat);
+            flame.position.set(bx, 1.65, 0.6);
+            pGroup.add(bowl, flame);
+            this.animatedObjects.push({ mesh: flame, baseY: 1.65, phase: bi * 2.1 + bx, amp: 0.18, spin: 3.5 });
+          });
+
+          const vortex = new THREE.Mesh(
+            new THREE.CircleGeometry(2.95, 28),
+            new THREE.MeshStandardMaterial({
+              color: p.color,
+              emissive: p.color,
+              emissiveIntensity: 0.48,
+              transparent: true,
+              opacity: 0.78,
+              side: THREE.DoubleSide
+            })
+          );
+          vortex.position.y = 3.4;
+
+          const signSprite = this.makePortalSign(p.label, p.sub, p.color);
+          signSprite.position.set(0, 10.3, 0);
+
+          pGroup.add(leftCol, rightCol, arch, vortex, signSprite);
+          this.worldGroup.add(pGroup);
+          this.portals.push({ action: p.action, label: p.label, pos: p.pos.clone(), vortex });
+        }
+      }
+
+      makePortalSign(text, subText, colorHex) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 400;
+        canvas.height = 104;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(12, 10, 376, 84, 16);
+        ctx.fill();
+        ctx.strokeStyle = '#' + colorHex.toString(16).padStart(6, '0');
+        ctx.lineWidth = 5;
+        ctx.stroke();
+
+        ctx.font = '900 25px Inter, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 200, 40);
+
+        ctx.font = '800 16px Inter, sans-serif';
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillText(subText || '', 200, 68);
+
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }));
+        sprite.scale.set(7.4, 1.9, 1);
+        return sprite;
+      }
+
+      buildArena(mapKey) {
+        this.clear();
+        this.arenaRadius = 38;
+
+        if (mapKey === 'sandstone') {
+          this.scene.background = new THREE.Color(0xfde68a);
+          this.scene.fog = new THREE.FogExp2(0xfef3c7, 0.0042);
+
+          const floor = new THREE.Mesh(
+            new THREE.CylinderGeometry(39, 39, 3, 52),
+            new THREE.MeshStandardMaterial({
+              map: this.texSandstone.map,
+              bumpMap: this.texSandstone.bumpMap,
+              bumpScale: 0.12,
+              roughness: 0.72
+            })
+          );
+          floor.position.y = -1.5;
+          floor.receiveShadow = true;
+          this.worldGroup.add(floor);
+
+          const obGeo = new THREE.BoxGeometry(2.6, 12, 2.6);
+          const obMat = new THREE.MeshStandardMaterial({ map: this.texSandstone.map, roughness: 0.7 });
+          const obInst = new THREE.InstancedMesh(obGeo, obMat, 12);
+          obInst.castShadow = true;
+          const dummy = new THREE.Object3D();
+          for (let i = 0; i < 12; i++) {
+            const a = (i / 12) * Math.PI * 2;
+            dummy.position.set(Math.cos(a) * 43, 5.5, Math.sin(a) * 43);
+            dummy.rotation.y = -a;
+            dummy.updateMatrix();
+            obInst.setMatrixAt(i, dummy.matrix);
+          }
+          this.worldGroup.add(obInst);
+
+          const pyrBase = new THREE.Mesh(new THREE.BoxGeometry(22, 6, 22), obMat);
+          pyrBase.position.set(0, 3, -62);
+          const pyrMid = new THREE.Mesh(new THREE.BoxGeometry(15, 6, 15), obMat);
+          pyrMid.position.set(0, 9, -62);
+          const pyrTop = new THREE.Mesh(new THREE.ConeGeometry(8, 7, 4), new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.6, roughness: 0.3 }));
+          pyrTop.rotation.y = Math.PI / 4;
+          pyrTop.position.set(0, 15.5, -62);
+          this.worldGroup.add(pyrBase, pyrMid, pyrTop);
+        } else if (mapKey === 'sakura') {
+          this.scene.background = new THREE.Color(0xfce7f3);
+          this.scene.fog = new THREE.FogExp2(0xfbcfe8, 0.004);
+
+          const floor = new THREE.Mesh(
+            new THREE.CylinderGeometry(39, 39, 3, 52),
+            new THREE.MeshStandardMaterial({
+              map: this.texCobble.map,
+              bumpMap: this.texCobble.bumpMap,
+              bumpScale: 0.1,
+              roughness: 0.58
+            })
+          );
+          floor.position.y = -1.5;
+          floor.receiveShadow = true;
+          this.worldGroup.add(floor);
+
+          const toriiMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.42 });
+          const leftPillar = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.88, 13.5, 14), toriiMat);
+          leftPillar.position.set(-7.5, 6.75, -44);
+          const rightPillar = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.88, 13.5, 14), toriiMat);
+          rightPillar.position.set(7.5, 6.75, -44);
+          const topBeam = new THREE.Mesh(new THREE.BoxGeometry(20, 1.35, 1.9), toriiMat);
+          topBeam.position.set(0, 13.2, -44);
+          const subBeam = new THREE.Mesh(new THREE.BoxGeometry(16, 0.9, 1.25), toriiMat);
+          subBeam.position.set(0, 10.4, -44);
+          this.worldGroup.add(leftPillar, rightPillar, topBeam, subBeam);
+
+          const pagGroup = new THREE.Group();
+          pagGroup.position.set(46, 0, -34);
+          const roofMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.55 });
+          for (let tier = 0; tier < 3; tier++) {
+            const w = 9 - tier * 1.8;
+            const body = new THREE.Mesh(new THREE.BoxGeometry(w, 4.5, w), toriiMat);
+            body.position.y = 2.25 + tier * 5.6;
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(w * 0.92, 2.5, 4), roofMat);
+            roof.rotation.y = Math.PI / 4;
+            roof.position.y = 5.4 + tier * 5.6;
+            pagGroup.add(body, roof);
+          }
+          this.worldGroup.add(pagGroup);
+        } else {
+          this.scene.background = new THREE.Color(0x93c5fd);
+          this.scene.fog = new THREE.FogExp2(0xdbeafe, 0.0038);
+
+          const floor = new THREE.Mesh(
+            new THREE.CylinderGeometry(39, 39, 3, 52),
+            new THREE.MeshStandardMaterial({
+              map: this.texMarble.map,
+              bumpMap: this.texMarble.bumpMap,
+              bumpScale: 0.09,
+              roughness: 0.52
+            })
+          );
+          floor.position.y = -1.5;
+          floor.receiveShadow = true;
+          this.worldGroup.add(floor);
+
+          const count = 24;
+          const colGeo = new THREE.CylinderGeometry(0.85, 1.0, 11.5, 14);
+          const colMat = new THREE.MeshStandardMaterial({ map: this.texMarble.map, roughness: 0.48 });
+          const colInst = new THREE.InstancedMesh(colGeo, colMat, count);
+          colInst.castShadow = true;
+          const dummy = new THREE.Object3D();
+          for (let i = 0; i < count; i++) {
+            const a = (i / count) * Math.PI * 2;
+            dummy.position.set(Math.cos(a) * 43, 5.75, Math.sin(a) * 43);
+            dummy.updateMatrix();
+            colInst.setMatrixAt(i, dummy.matrix);
+          }
+          const cornice = new THREE.Mesh(
+            new THREE.TorusGeometry(43, 1.15, 10, 56),
+            colMat
+          );
+          cornice.rotation.x = Math.PI / 2;
+          cornice.position.y = 11.6;
+          this.worldGroup.add(colInst, cornice);
+        }
+
+        const centerRing = new THREE.Mesh(
+          new THREE.RingGeometry(2.8, 3.6, 36),
+          new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide })
+        );
+        centerRing.rotation.x = -Math.PI / 2;
+        centerRing.position.y = 0.03;
+
+        const outerWall = new THREE.Mesh(
+          new THREE.TorusGeometry(39, 0.65, 12, 64),
+          new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.65, roughness: 0.35 })
+        );
+        outerWall.rotation.x = Math.PI / 2;
+        outerWall.position.y = 0.65;
+
+        this.worldGroup.add(centerRing, outerWall);
+      }
+
+      update(dt, elapsed) {
+        for (const p of this.portals) {
+          p.vortex.rotation.z = elapsed * 1.4;
+        }
+        for (const obj of this.animatedObjects) {
+          obj.mesh.position.y = obj.baseY + Math.sin(elapsed * 1.3 + obj.phase) * (obj.amp || 0.5);
+          if (obj.spin) obj.mesh.rotation.y += dt * obj.spin;
+        }
+      }
+    }
+
+    /* ============================================================================
+       8. REAL WEBRTC PEERJS + MULTI-TAB ROOM NETWORK (ZERO FAKE HUMANS)
+       ============================================================================ */
+    class RealP2PRoomNetwork {
+      constructor(onEvent) {
+        this.onEvent = onEvent;
+        this.peer = null;
+        this.peerId = 'tab_' + Math.random().toString(36).slice(2, 8);
+        this.connections = new Map();
+        this.hostConn = null;
+        this.currentRoom = null;
+        this.tabRooms = new Map();
+
+        this.channel = typeof BroadcastChannel !== 'undefined'
+          ? new BroadcastChannel('blade_ball_3d_real_rooms_v2')
+          : null;
+
+        if (this.channel) {
+          this.channel.onmessage = (ev) => this.handleChannelMessage(ev.data);
+          this.channel.postMessage({ type: 'DISCOVER_ROOMS' });
+        }
+      }
+
+      generateCode() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let out = '';
+        for (let i = 0; i < 5; i++) {
+          out += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return out;
+      }
+
+      createRoom({ hostName, mapKey, fillBots, botDiff }) {
+        this.leaveRoom();
+        const code = this.generateCode();
+        this.currentRoom = {
+          code,
+          isHost: true,
+          mapKey,
+          fillBots: Boolean(fillBots),
+          botDiff: botDiff || 'pro',
+          members: [{ id: this.peerId, name: hostName, isHost: true }]
+        };
+
+        if (typeof Peer !== 'undefined') {
+          try {
+            this.peer = new Peer('bb3d-room-' + code);
+            this.peer.on('open', (id) => {
+              this.peerId = id;
+              if (this.currentRoom && this.currentRoom.members[0]) {
+                this.currentRoom.members[0].id = id;
+              }
+              this.syncRoomMembers();
+            });
+            this.peer.on('connection', (conn) => {
+              conn.on('data', (data) => this.handlePeerData(conn, data));
+              conn.on('close', () => {
+                this.connections.delete(conn.peer);
+                if (this.currentRoom) {
+                  this.currentRoom.members = this.currentRoom.members.filter(m => m.id !== conn.peer);
+                  this.syncRoomMembers();
+                }
+              });
+            });
+          } catch (err) {
+            // BroadcastChannel multi-tab fallback remains active
+          }
+        }
+
+        this.announceTabRoom();
+        this.onEvent({ type: 'ROOM_UPDATED', room: this.currentRoom });
+      }
+
+      joinRoomByCode(codeRaw, playerName) {
+        const code = codeRaw.trim().toUpperCase();
+        if (!code) return;
+        this.leaveRoom();
+
+        this.currentRoom = {
+          code,
+          isHost: false,
+          mapKey: 'colosseum',
+          fillBots: false,
+          botDiff: 'pro',
+          members: [{ id: this.peerId, name: playerName, isHost: false }]
+        };
+
+        // Notify via BroadcastChannel (for local multi-tab testing)
+        if (this.channel) {
+          this.channel.postMessage({
+            type: 'TAB_JOIN_REQ',
+            code,
+            member: { id: this.peerId, name: playerName, isHost: false }
+          });
+        }
+
+        // Connect via PeerJS WebRTC (for cross-device online play)
+        if (typeof Peer !== 'undefined') {
+          try {
+            this.peer = new Peer();
+            this.peer.on('open', (id) => {
+              this.peerId = id;
+              const conn = this.peer.connect('bb3d-room-' + code, { reliable: true });
+              this.hostConn = conn;
+              conn.on('open', () => {
+                conn.send({
+                  type: 'JOIN_ROOM',
+                  member: { id: this.peerId, name: playerName, isHost: false }
+                });
+              });
+              conn.on('data', (data) => this.handlePeerData(conn, data));
+              conn.on('close', () => {
+                this.onEvent({ type: 'ROOM_CLOSED' });
+              });
+            });
+          } catch (err) {}
+        }
+
+        this.onEvent({ type: 'ROOM_UPDATED', room: this.currentRoom });
+      }
+
+      handlePeerData(conn, data) {
+        if (!data || !data.type) return;
+        if (this.currentRoom && this.currentRoom.isHost) {
+          if (data.type === 'JOIN_ROOM' && data.member) {
+            this.connections.set(conn.peer, conn);
+            const exists = this.currentRoom.members.some(m => m.id === data.member.id);
+            if (!exists) {
+              this.currentRoom.members.push({
+                id: data.member.id,
+                name: data.member.name,
+                isHost: false
+              });
+            }
+            this.syncRoomMembers();
+            return;
+          }
+          // Relay client gameplay actions to all other peers and process locally
+          this.broadcast(data, conn.peer);
+          this.onEvent(data);
+        } else {
+          if (data.type === 'ROOM_STATE' && data.room) {
+            this.currentRoom = Object.assign({}, data.room, { isHost: false });
+            this.onEvent({ type: 'ROOM_UPDATED', room: this.currentRoom });
+            return;
+          }
+          this.onEvent(data);
+        }
+      }
+
+      handleChannelMessage(msg) {
+        if (!msg || !msg.type) return;
+        if (msg.type === 'DISCOVER_ROOMS') {
+          if (this.currentRoom && this.currentRoom.isHost) this.announceTabRoom();
+        } else if (msg.type === 'TAB_ROOM_ANNOUNCE' && msg.room) {
+          if (!this.currentRoom || this.currentRoom.code !== msg.room.code) {
+            this.tabRooms.set(msg.room.code, msg.room);
+            this.onEvent({ type: 'TAB_ROOMS_CHANGED', rooms: Array.from(this.tabRooms.values()) });
+          }
+        } else if (msg.type === 'TAB_ROOM_CLOSED') {
+          this.tabRooms.delete(msg.code);
+          this.onEvent({ type: 'TAB_ROOMS_CHANGED', rooms: Array.from(this.tabRooms.values()) });
+          if (this.currentRoom && !this.currentRoom.isHost && this.currentRoom.code === msg.code) {
+            this.currentRoom = null;
+            this.onEvent({ type: 'ROOM_CLOSED' });
+          }
+        } else if (msg.type === 'TAB_JOIN_REQ' && this.currentRoom && this.currentRoom.isHost && this.currentRoom.code === msg.code) {
+          if (!this.currentRoom.members.some(m => m.id === msg.member.id)) {
+            this.currentRoom.members.push(msg.member);
+          }
+          this.syncRoomMembers();
+        } else if (msg.type === 'TAB_RELAY' && this.currentRoom && this.currentRoom.code === msg.code) {
+          if (msg.senderId === this.peerId) return;
+          if (msg.payload.type === 'ROOM_STATE' && !this.currentRoom.isHost) {
+            this.currentRoom = Object.assign({}, msg.payload.room, { isHost: false });
+            this.onEvent({ type: 'ROOM_UPDATED', room: this.currentRoom });
+          } else {
+            this.onEvent(msg.payload);
+          }
+        }
+      }
+
+      announceTabRoom() {
+        if (!this.channel || !this.currentRoom || !this.currentRoom.isHost) return;
+        this.channel.postMessage({ type: 'TAB_ROOM_ANNOUNCE', room: this.currentRoom });
+      }
+
+      syncRoomMembers() {
+        if (!this.currentRoom || !this.currentRoom.isHost) return;
+        this.announceTabRoom();
+        this.broadcast({ type: 'ROOM_STATE', room: this.currentRoom });
+        this.onEvent({ type: 'ROOM_UPDATED', room: this.currentRoom });
+      }
+
+      broadcast(payload, excludePeerId = null) {
+        if (!this.currentRoom) return;
+        if (this.currentRoom.isHost) {
+          for (const [pid, conn] of this.connections.entries()) {
+            if (pid !== excludePeerId && conn.open) {
+              conn.send(payload);
+            }
+          }
+        } else if (this.hostConn && this.hostConn.open) {
+          this.hostConn.send(payload);
+        }
+
+        if (this.channel) {
+          this.channel.postMessage({
+            type: 'TAB_RELAY',
+            code: this.currentRoom.code,
+            senderId: this.peerId,
+            payload
+          });
+        }
+      }
+
+      leaveRoom() {
+        if (this.currentRoom && this.currentRoom.isHost && this.channel) {
+          this.channel.postMessage({ type: 'TAB_ROOM_CLOSED', code: this.currentRoom.code });
+        }
+        for (const conn of this.connections.values()) {
+          try { conn.close(); } catch (e) {}
+        }
+        this.connections.clear();
+        if (this.hostConn) {
+          try { this.hostConn.close(); } catch (e) {}
+          this.hostConn = null;
+        }
+        if (this.peer) {
+          try { this.peer.destroy(); } catch (e) {}
+          this.peer = null;
+        }
+        this.currentRoom = null;
+        this.onEvent({ type: 'ROOM_UPDATED', room: null });
+      }
+    }
+
+    /* ============================================================================
+       9. MAIN BLADE BALL 3D GAME CONTROLLER
+       ============================================================================ */
+    class BladeBallGame {
+      constructor() {
+        this.cookieMgr = new CookieSaveManager();
+        this.profile = this.cookieMgr.load();
+        this.sound = new SoundEngine();
+        this.sound.enabled = Boolean(this.profile.soundOn);
+        this.sound.volume = typeof this.profile.sfxVolume === 'number' ? this.profile.sfxVolume : 1.0;
+
+        this.localId = 'local';
+        this.mode = 'lobby';
+        this.selectedMap = 'colosseum';
+        this.botsInCurrentMatch = false;
+        this.standoffActive = false;
+        this.intermissionTimer = 30.0;
+        this.summaryReturnTimer = 0;
+        this.portalCooldown = 0;
+        this.activePortal = null;
+
+        this.roundElims = 0;
+        this.peakBallSpeedKmh = 0;
+        this.elimCounter = 0;
+        this.hitstopTimer = 0;
+        this.netSyncAccum = 0;
+
+        this.fighters = new Map();
+        this.mapVotes = { colosseum: 1, sandstone: 0, sakura: 0 };
+        this.myVotedMap = 'colosseum';
+
+        this.ball = {
+          active: false,
+          pos: new THREE.Vector3(0, 4.5, 0),
+          vel: new THREE.Vector3(0, 0, 1),
+          speed: 24,
+          targetId: null,
+          lastHitterId: null,
+          spawnDelay: 0,
+          telekinesisTimer: 0,
+          ragingBoost: false
+        };
+
+        this.keys = {};
+        this.joyVec = { x: 0, y: 0 };
+        this.camYaw = 0;
+        this.camPitch = 0.36;
+        this.camDist = 15.5;
+        this.isDraggingCam = false;
+        this.lastPointer = { x: 0, y: 0 };
+
+        this.fpsFrames = 0;
+        this.fpsLastTime = performance.now();
+
+        this.initThree();
+        this.net = new RealP2PRoomNetwork((msg) => this.onNetworkEvent(msg));
+        this.bindUI();
+        this.setupMobileDetection();
+        this.syncHUDFromProfile();
+        this.enterSkyLobby();
+
+        this.lastFrameTime = performance.now();
+        this.animate = this.animate.bind(this);
+        requestAnimationFrame(this.animate);
+      }
+
+      initThree() {
+        const container = document.getElementById('canvas-container');
+        this.scene = new THREE.Scene();
+
+        this.camera = new THREE.PerspectiveCamera(this.profile.camFov || 62, window.innerWidth / window.innerHeight, 0.2, 280);
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.08;
+        container.appendChild(this.renderer.domElement);
+
+        // Sunlit 3-Point Lighting
+        const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x475569, 0.85);
+        this.scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.35);
+        dirLight.position.set(36, 62, 28);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 5;
+        dirLight.shadow.camera.far = 160;
+        const d = 48;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        this.scene.add(dirLight);
+
+        this.world = new WorldBuilder(this.scene);
+        this.vfx = new VFXEngine(this.scene);
+        this.applyGfxPreset(this.profile.gfx || 'HIGH');
+
+        window.addEventListener('resize', () => {
+          this.camera.aspect = window.innerWidth / window.innerHeight;
+          this.camera.updateProjectionMatrix();
+          this.renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      }
+
+      showToast(text) {
+        const el = document.getElementById('toast-banner');
+        if (!el) return;
+        el.textContent = text;
+        el.classList.remove('hidden');
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => el.classList.add('hidden'), 2400);
+      }
+
+      applyGfxPreset(preset) {
+        this.profile.gfx = preset;
+        const btn = document.getElementById('btn-gfx-toggle');
+        if (btn) btn.textContent = `GFX: ${preset}`;
+        const setBtn = document.getElementById('btn-settings-gfx');
+        if (setBtn) setBtn.textContent = `QUALITY: ${preset}`;
+        if (preset === 'FAST') {
+          this.renderer.setPixelRatio(1);
+          this.renderer.shadowMap.enabled = false;
+        } else if (preset === 'MED') {
+          this.renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
+          this.renderer.shadowMap.enabled = true;
+        } else {
+          this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+          this.renderer.shadowMap.enabled = true;
+        }
+      }
+
+      toNetId(fighterId) {
+        return fighterId === this.localId ? this.net.peerId : fighterId;
+      }
+
+      fromNetId(netId) {
+        return netId === this.net.peerId ? this.localId : netId;
+      }
+
+      clearFighters() {
+        for (const f of this.fighters.values()) {
+          f.dispose();
+        }
+        this.fighters.clear();
+      }
+
+      spawnFighter(spec) {
+        const swordSpec = SWORD_CATALOG.find(s => s.id === (spec.isLocal ? this.profile.equippedSword : 'katana')) || SWORD_CATALOG[0];
+        const rig = new FighterRig(this.scene, spec, swordSpec);
+        this.fighters.set(spec.id, rig);
+        return rig;
+      }
+
+      getTopVotedMap() {
+        let best = 'colosseum';
+        let maxV = -1;
+        for (const k of Object.keys(this.mapVotes)) {
+          if (this.mapVotes[k] > maxV) {
+            maxV = this.mapVotes[k];
+            best = k;
+          }
+        }
+        return best;
+      }
+
+      enterSkyLobby() {
+        this.mode = 'lobby';
+        this.ball.active = false;
+        this.vfx.setBallVisible(false);
+        this.intermissionTimer = 30.0;
+        this.summaryReturnTimer = 0;
+        this.portalCooldown = 1.2;
+
+        document.getElementById('death-exit-modal').classList.add('hidden');
+        document.getElementById('round-summary-modal').classList.add('hidden');
+        document.getElementById('btn-spectate-exit').classList.add('hidden');
+        document.getElementById('standoff-banner').classList.add('hidden');
+        document.getElementById('arena-roster-panel').classList.add('hidden');
+        document.getElementById('target-edge-alert').classList.remove('active');
+        document.getElementById('ball-direction-indicator').classList.add('hidden');
+        document.getElementById('hud-bot-notice').classList.add('hidden');
+        document.getElementById('lobby-map-vote-bar').classList.remove('hidden');
+
+        this.world.buildLobby();
+        this.clearFighters();
+
+        this.spawnFighter({
+          id: this.localId,
+          name: this.profile.nickname,
+          isLocal: true,
+          isBot: false,
+          spawnPos: new THREE.Vector3(0, 0.45, 3.5),
+          paletteIdx: this.profile.paletteIdx || 0
+        });
+
+        if (this.net.currentRoom) {
+          this.net.currentRoom.members.forEach((m, idx) => {
+            if (m.id !== this.net.peerId) {
+              const angle = (idx / Math.max(1, this.net.currentRoom.members.length)) * Math.PI * 2;
+              this.spawnFighter({
+                id: m.id,
+                name: m.name,
+                isLocal: false,
+                isBot: false,
+                spawnPos: new THREE.Vector3(Math.cos(angle) * 7, 0.45, Math.sin(angle) * 7),
+                paletteIdx: idx + 1
+              });
+            }
+          });
+        }
+      }
+
+      activatePortalAction(action) {
+        this.portalCooldown = 1.4;
+        if (action === 'solo_quick') {
+          this.sound.playClick();
+          const topMap = this.getTopVotedMap();
+          this.startMatch({ isOnline: false, mapKey: topMap, botCount: 5, botDiff: 'pro' });
+          return;
+        }
+        this.openModal('modal-' + action);
+      }
+
+      launchConfiguredOnlineOrLobbyMatch(mapKey) {
+        if (this.net.currentRoom) {
+          if (!this.net.currentRoom.isHost) return;
+          const room = this.net.currentRoom;
+          const humans = room.members;
+          const botCount = room.fillBots ? Math.max(0, 6 - humans.length) : 0;
+          const payload = {
+            type: 'START_MATCH',
+            mapKey: room.mapKey || mapKey,
+            humanMembers: humans,
+            botCount,
+            botDiff: room.botDiff || 'pro'
+          };
+          this.net.broadcast(payload);
+          this.startMatch({
+            isOnline: true,
+            mapKey: payload.mapKey,
+            humanMembers: humans,
+            botCount,
+            botDiff: payload.botDiff
+          });
+        } else {
+          // Default to Online-First Solo-Human Arena (0 bots unless user enables bots)
+          this.startMatch({
+            isOnline: true,
+            mapKey,
+            humanMembers: [{ id: this.net.peerId, name: this.profile.nickname, isHost: true }],
+            botCount: 0,
+            botDiff: 'pro'
+          });
+        }
+      }
+
+      startMatch({ isOnline, mapKey, humanMembers, botCount = 0, botDiff = 'pro' }) {
+        this.closeAllModals();
+        this.mode = 'match';
+        this.selectedMap = mapKey || 'colosseum';
+        this.botsInCurrentMatch = botCount > 0;
+        this.standoffActive = false;
+        this.roundElims = 0;
+        this.peakBallSpeedKmh = 0;
+        this.elimCounter = 0;
+
+        document.getElementById('lobby-map-vote-bar').classList.add('hidden');
+        document.getElementById('portal-prompt').classList.add('hidden');
+        document.getElementById('arena-roster-panel').classList.remove('hidden');
+        document.getElementById('hud-bot-notice').classList.toggle('hidden', !this.botsInCurrentMatch);
+
+        this.world.buildArena(this.selectedMap);
+        this.clearFighters();
+
+        const humans = humanMembers && humanMembers.length > 0
+          ? humanMembers
+          : [{ id: this.net.peerId, name: this.profile.nickname, isHost: true }];
+
+        const rosterSpecs = [];
+        humans.forEach((h, idx) => {
+          const isMe = h.id === this.net.peerId;
+          rosterSpecs.push({
+            id: isMe ? this.localId : h.id,
+            name: isMe ? this.profile.nickname : h.name,
+            isLocal: isMe,
+            isBot: false,
+            paletteIdx: isMe ? (this.profile.paletteIdx || 0) : (idx + 1)
+          });
+        });
+
+        const botNames = ['Bot_Valkyrie', 'Bot_Kenshin', 'Bot_Aegis', 'Bot_Ronin', 'Bot_Titan', 'Bot_Zephyr', 'Bot_Apex'];
+        for (let b = 0; b < botCount; b++) {
+          rosterSpecs.push({
+            id: 'bot_' + b,
+            name: botNames[b % botNames.length],
+            isLocal: false,
+            isBot: true,
+            diff: botDiff,
+            paletteIdx: humans.length + b
+          });
+        }
+
+        const total = rosterSpecs.length;
+        const spawnR = 23;
+        rosterSpecs.forEach((spec, idx) => {
+          const angle = (idx / Math.max(1, total)) * Math.PI * 2;
+          spec.spawnPos = new THREE.Vector3(Math.cos(angle) * spawnR, 0, Math.sin(angle) * spawnR);
+          this.spawnFighter(spec);
+        });
+
+        this.refreshRosterUI();
+
+        // Host or Local Match Spawns Ball in Center Arena Toward Random Alive Fighter
+        const isAuthority = !this.net.currentRoom || this.net.currentRoom.isHost;
+        if (isAuthority) {
+          this.spawnBallFromCenter();
+        }
+      }
+
+      spawnBallFromCenter() {
+        const alive = Array.from(this.fighters.values()).filter(f => f.alive);
+        if (alive.length === 0) return;
+
+        // If only 1 player is in an online room with 0 bots, target them for live practice
+        const target = alive[Math.floor(Math.random() * alive.length)];
+
+        this.ball.active = true;
+        this.ball.pos.set(0, 4.5, 0);
+        this.ball.speed = 23;
+        this.ball.targetId = target.id;
+        this.ball.lastHitterId = null;
+        this.ball.spawnDelay = 1.15;
+        this.ball.telekinesisTimer = 0;
+        this.ball.ragingBoost = false;
+
+        this.vfx.setBallVisible(true);
+        this.vfx.setBallColor(target.id === this.localId);
+        this.vfx.spawnShockwave(this.ball.pos, 0xf59e0b, 7.5);
+
+        if (this.net.currentRoom && this.net.currentRoom.isHost) {
+          this.net.broadcast({
+            type: 'BALL_SPAWN',
+            targetNetId: this.toNetId(target.id),
+            speed: this.ball.speed
+          });
+        }
+      }
+
+      triggerParry(fighter, fromNetwork = false) {
+        if (!fighter || !fighter.alive) return;
+        if (!fromNetwork && (fighter.parryCooldown > 0 || fighter.parryActiveTimer > 0)) return;
+
+        fighter.parryActiveTimer = 0.46;
+        fighter.parryCooldown = 1.35;
+        this.sound.playClick();
+
+        if (!fromNetwork && fighter.isLocal && this.net.currentRoom) {
+          this.net.broadcast({
+            type: 'PLAYER_PARRY',
+            senderNetId: this.net.peerId
+          });
+        }
+      }
+
+      triggerAbility(fighter, fromNetwork = false) {
+        if (!fighter || !fighter.alive) return;
+        const ab = ABILITY_CATALOG.find(a => a.id === this.profile.equippedAbility) || ABILITY_CATALOG[0];
+        if (!fromNetwork && fighter.abilityCooldown > 0) return;
+
+        fighter.abilityCooldown = ab.cd;
+        this.sound.playAbility();
+        this.vfx.spawnShockwave(fighter.pos, 0xf59e0b, 5.0);
+
+        const forward = new THREE.Vector3(Math.sin(fighter.yaw), 0, Math.cos(fighter.yaw));
+        if (ab.id === 'dash') {
+          fighter.vel.addScaledVector(forward, 38);
+        } else if (ab.id === 'forcefield') {
+          fighter.forcefieldTimer = 2.4;
+        } else if (ab.id === 'raging') {
+          fighter.ragingActive = true;
+        } else if (ab.id === 'telekinesis') {
+          if (this.ball.active) this.ball.telekinesisTimer = 1.1;
+        } else if (ab.id === 'invis') {
+          fighter.invisTimer = 2.6;
+          if (this.ball.targetId === fighter.id) {
+            const others = Array.from(this.fighters.values()).filter(f => f.alive && f.id !== fighter.id);
+            if (others.length > 0) {
+              this.ball.targetId = others[Math.floor(Math.random() * others.length)].id;
+            }
+          }
+        } else if (ab.id === 'superjump') {
+          fighter.vel.y = 24;
+          fighter.onGround = false;
+        }
+
+        if (!fromNetwork && fighter.isLocal && this.net.currentRoom) {
+          this.net.broadcast({
+            type: 'PLAYER_ABILITY',
+            senderNetId: this.net.peerId,
+            abilityId: ab.id
+          });
+        }
+      }
+
+      deflectBallBy(fighter) {
+        const aliveOthers = Array.from(this.fighters.values()).filter(f => f.alive && f.id !== fighter.id);
+        const nextTarget = aliveOthers.length > 0
+          ? aliveOthers[Math.floor(Math.random() * aliveOthers.length)]
+          : fighter;
+
+        fighter.parryCooldown = 0; // Reset parry cooldown on successful deflect
+        fighter.parryActiveTimer = 0.2;
+
+        const mult = fighter.ragingActive ? 1.45 : 1.085;
+        fighter.ragingActive = false;
+
+        this.ball.speed = Math.min(92, this.ball.speed * mult + 1.8);
+        this.ball.targetId = nextTarget.id;
+        this.ball.lastHitterId = fighter.id;
+        this.ball.spawnDelay = 0;
+
+        // Curve launch outward from fighter's camera/facing yaw
+        const curveDir = new THREE.Vector3(Math.sin(fighter.yaw), 0.16, Math.cos(fighter.yaw)).normalize();
+        this.ball.vel.copy(curveDir).multiplyScalar(this.ball.speed);
+
+        const kmh = Math.round(this.ball.speed * 3.6);
+        if (kmh > this.peakBallSpeedKmh) this.peakBallSpeedKmh = kmh;
+        if (fighter.isLocal && kmh > this.profile.peakSpeed) {
+          this.profile.peakSpeed = kmh;
+        }
+
+        this.vfx.setBallColor(nextTarget.id === this.localId);
+        this.vfx.spawnShockwave(this.ball.pos, 0x38bdf8, 6.5);
+        this.vfx.spawnBurst(this.ball.pos, 0xfde047, 14);
+        this.sound.playParry(this.ball.speed);
+        if (fighter.isLocal && this.profile.screenShake !== false) this.hitstopTimer = 0.032;
+
+        if (this.net.currentRoom && this.net.currentRoom.isHost) {
+          this.net.broadcast({
+            type: 'BALL_DEFLECTED',
+            hitterNetId: this.toNetId(fighter.id),
+            targetNetId: this.toNetId(nextTarget.id),
+            pos: [this.ball.pos.x, this.ball.pos.y, this.ball.pos.z],
+            vel: [this.ball.vel.x, this.ball.vel.y, this.ball.vel.z],
+            speed: this.ball.speed
+          });
+        }
+      }
+
+      eliminateFighter(victim, killerId, fromNetwork = false) {
+        if (!victim || !victim.alive) return;
+        victim.alive = false;
+        this.elimCounter++;
+        victim.elimOrder = this.elimCounter;
+        victim.group.visible = false;
+
+        if (killerId && this.fighters.has(killerId)) {
+          const killer = this.fighters.get(killerId);
+          killer.elims++;
+          if (killer.isLocal) {
+            this.roundElims++;
+            this.profile.elims++;
+            this.profile.coins += 15;
+          }
+        }
+
+        this.vfx.spawnShockwave(victim.pos, 0xef4444, 9.0);
+        this.vfx.spawnBurst(victim.pos, 0xef4444, 24);
+        this.sound.playElimination();
+        this.refreshRosterUI();
+
+        if (!fromNetwork && this.net.currentRoom && this.net.currentRoom.isHost) {
+          this.net.broadcast({
+            type: 'PLAYER_ELIMINATED',
+            victimNetId: this.toNetId(victim.id),
+            killerNetId: killerId ? this.toNetId(killerId) : null
+          });
+        }
+
+        // Local player eliminated overlay
+        if (victim.isLocal) {
+          document.getElementById('death-title').textContent = 'YOU WERE ELIMINATED!';
+          document.getElementById('death-subtitle').textContent = killerId && this.fighters.has(killerId)
+            ? `Eliminated by ${this.fighters.get(killerId).name}`
+            : 'Struck by the arena ball!';
+          document.getElementById('death-bot-exit-box').classList.toggle('hidden', !this.botsInCurrentMatch);
+          document.getElementById('death-exit-modal').classList.remove('hidden');
+        }
+
+        const alive = Array.from(this.fighters.values()).filter(f => f.alive);
+        if (alive.length === 2 && this.fighters.size > 2) {
+          this.standoffActive = true;
+          document.getElementById('standoff-banner').classList.remove('hidden');
+        }
+
+        if (!fromNetwork) {
+          if (alive.length <= 1 && this.fighters.size > 1) {
+            const champ = alive[0] || victim;
+            this.endMatch(champ);
+          } else if (alive.length >= 1) {
+            this.spawnBallFromCenter();
+          }
+        }
+      }
+
+      endMatch(champion, fromNetwork = false) {
+        if (this.mode === 'ended') return;
+        this.mode = 'ended';
+        this.ball.active = false;
+        this.vfx.setBallVisible(false);
+        this.summaryReturnTimer = 10.0;
+
+        document.getElementById('death-exit-modal').classList.add('hidden');
+        document.getElementById('btn-spectate-exit').classList.add('hidden');
+        document.getElementById('standoff-banner').classList.add('hidden');
+        document.getElementById('target-edge-alert').classList.remove('active');
+        document.getElementById('ball-direction-indicator').classList.add('hidden');
+
+        const localWon = champion && champion.isLocal;
+        const coinsEarned = (localWon ? 60 : 20) + this.roundElims * 15;
+        this.profile.coins += coinsEarned;
+        this.profile.matches++;
+        if (localWon) {
+          this.profile.wins++;
+          this.sound.playWin();
+        }
+        this.cookieMgr.save(this.profile);
+        this.syncHUDFromProfile();
+
+        if (!fromNetwork && this.net.currentRoom && this.net.currentRoom.isHost) {
+          this.net.broadcast({
+            type: 'MATCH_ENDED',
+            championNetId: champion ? this.toNetId(champion.id) : null
+          });
+        }
+
+        // Build Ranked Standings
+        const allFighters = Array.from(this.fighters.values()).sort((a, b) => {
+          if (a.alive !== b.alive) return a.alive ? -1 : 1;
+          return b.elimOrder - a.elimOrder;
+        });
+
+        document.getElementById('summary-badge').innerHTML = localWon
+          ? '<span>🏆</span><span>VICTORY • 1ST PLACE</span>'
+          : '<span>⚔️</span><span>MATCH COMPLETE</span>';
+        document.getElementById('summary-winner-text').textContent = `CHAMPION: ${(champion ? champion.name : 'NONE').toUpperCase()}`;
+        document.getElementById('summary-subtext').textContent = `${allFighters.length} Fighters • Arena: ${this.selectedMap.toUpperCase()}`;
+        document.getElementById('summary-total-fighters').textContent = `${allFighters.length} Fighters`;
+        document.getElementById('summary-coins').textContent = `+${coinsEarned}`;
+        document.getElementById('summary-elims').textContent = String(this.roundElims);
+        document.getElementById('summary-speed').textContent = `${this.peakBallSpeedKmh} KM/H`;
+        document.getElementById('summary-total-wins').textContent = String(this.profile.wins);
+
+        const listEl = document.getElementById('summary-standings-list');
+        listEl.innerHTML = allFighters.map((f, idx) => {
+          const rank = idx + 1;
+          const tag = f.isBot ? '<span class="px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-black">! BOT</span>' : '<span class="px-1.5 py-0.5 rounded bg-blue-600 text-white text-[10px] font-black">HUMAN</span>';
+          return `
+            <div class="flex items-center justify-between px-3 py-2 rounded-lg ${rank === 1 ? 'bg-amber-500/20 border border-amber-400' : 'bg-slate-900 border border-slate-700'} text-xs">
+              <div class="flex items-center gap-2">
+                <span class="font-mono-num font-black ${rank === 1 ? 'text-amber-400' : 'text-slate-400'}">#${rank}</span>
+                <span class="font-black text-white">${f.name}</span>
+                ${tag}
+              </div>
+              <span class="font-mono-num font-bold text-slate-300">${f.elims} ELIMS</span>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('round-summary-modal').classList.remove('hidden');
+      }
+
+      onNetworkEvent(msg) {
+        if (!msg || !msg.type) return;
+
+        if (msg.type === 'ROOM_UPDATED') {
+          this.renderRoomUI(msg.room);
+          if (this.mode === 'lobby') this.enterSkyLobby();
+        } else if (msg.type === 'ROOM_CLOSED') {
+          this.showToast('Room host closed the party.');
+          this.renderRoomUI(null);
+          if (this.mode !== 'lobby') this.enterSkyLobby();
+        } else if (msg.type === 'TAB_ROOMS_CHANGED') {
+          this.renderTabRoomsList(msg.rooms || []);
+        } else if (msg.type === 'START_MATCH') {
+          this.startMatch({
+            isOnline: true,
+            mapKey: msg.mapKey,
+            humanMembers: msg.humanMembers,
+            botCount: msg.botCount || 0,
+            botDiff: msg.botDiff || 'pro'
+          });
+        } else if (msg.type === 'PLAYER_STATE') {
+          const fid = this.fromNetId(msg.senderNetId);
+          const f = this.fighters.get(fid);
+          if (f && !f.isLocal && Array.isArray(msg.pos)) {
+            f.pos.set(msg.pos[0], msg.pos[1], msg.pos[2]);
+            f.yaw = msg.yaw || 0;
+          }
+        } else if (msg.type === 'PLAYER_PARRY') {
+          const fid = this.fromNetId(msg.senderNetId);
+          const f = this.fighters.get(fid);
+          if (f && !f.isLocal) this.triggerParry(f, true);
+        } else if (msg.type === 'PLAYER_ABILITY') {
+          const fid = this.fromNetId(msg.senderNetId);
+          const f = this.fighters.get(fid);
+          if (f && !f.isLocal) this.triggerAbility(f, true);
+        } else if (msg.type === 'BALL_SPAWN') {
+          this.ball.active = true;
+          this.ball.pos.set(0, 4.5, 0);
+          this.ball.speed = msg.speed || 23;
+          this.ball.targetId = this.fromNetId(msg.targetNetId);
+          this.ball.spawnDelay = 1.0;
+          this.vfx.setBallVisible(true);
+          this.vfx.setBallColor(this.ball.targetId === this.localId);
+        } else if (msg.type === 'BALL_DEFLECTED') {
+          this.ball.active = true;
+          this.ball.targetId = this.fromNetId(msg.targetNetId);
+          this.ball.lastHitterId = this.fromNetId(msg.hitterNetId);
+          this.ball.speed = msg.speed || this.ball.speed;
+          if (Array.isArray(msg.pos)) this.ball.pos.set(msg.pos[0], msg.pos[1], msg.pos[2]);
+          if (Array.isArray(msg.vel)) this.ball.vel.set(msg.vel[0], msg.vel[1], msg.vel[2]);
+          this.vfx.setBallVisible(true);
+          this.vfx.setBallColor(this.ball.targetId === this.localId);
+          this.vfx.spawnShockwave(this.ball.pos, 0x38bdf8, 6.0);
+          this.sound.playParry(this.ball.speed);
+        } else if (msg.type === 'BALL_SYNC') {
+          if (this.net.currentRoom && !this.net.currentRoom.isHost && Array.isArray(msg.pos)) {
+            this.ball.active = true;
+            this.ball.pos.lerp(new THREE.Vector3(msg.pos[0], msg.pos[1], msg.pos[2]), 0.45);
+            this.ball.speed = msg.speed || this.ball.speed;
+            this.ball.targetId = this.fromNetId(msg.targetNetId);
+            this.vfx.setBallVisible(true);
+            this.vfx.setBallColor(this.ball.targetId === this.localId);
+          }
+        } else if (msg.type === 'PLAYER_ELIMINATED') {
+          const victim = this.fighters.get(this.fromNetId(msg.victimNetId));
+          const killerId = msg.killerNetId ? this.fromNetId(msg.killerNetId) : null;
+          if (victim) this.eliminateFighter(victim, killerId, true);
+        } else if (msg.type === 'MATCH_ENDED') {
+          const champ = msg.championNetId ? this.fighters.get(this.fromNetId(msg.championNetId)) : null;
+          this.endMatch(champ, true);
+        }
+      }
+
+      updateSimulation(dt, elapsed) {
+        if (this.hitstopTimer > 0) {
+          this.hitstopTimer -= dt;
+          return;
+        }
+
+        const local = this.fighters.get(this.localId);
+
+        // 1. Local Movement Input
+        if (local && local.alive) {
+          let moveForward = 0;
+          let moveRight = 0;
+          if (this.keys['KeyW'] || this.keys['ArrowUp']) moveForward += 1;
+          if (this.keys['KeyS'] || this.keys['ArrowDown']) moveForward -= 1;
+          if (this.keys['KeyD'] || this.keys['ArrowRight']) moveRight += 1;
+          if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveRight -= 1;
+
+          moveForward += -this.joyVec.y;
+          moveRight += this.joyVec.x;
+
+          const inputMag = Math.hypot(moveForward, moveRight);
+          if (inputMag > 0.05) {
+            const normF = moveForward / Math.max(1, inputMag);
+            const normR = moveRight / Math.max(1, inputMag);
+            const sinY = Math.sin(this.camYaw);
+            const cosY = Math.cos(this.camYaw);
+            const wishX = -sinY * normF + cosY * normR;
+            const wishZ = -cosY * normF - sinY * normR;
+
+            const runSpeed = 16.5;
+            local.vel.x = THREE.MathUtils.lerp(local.vel.x, wishX * runSpeed, Math.min(1, dt * 12));
+            local.vel.z = THREE.MathUtils.lerp(local.vel.z, wishZ * runSpeed, Math.min(1, dt * 12));
+            local.yaw = Math.atan2(wishX, wishZ);
+          } else {
+            local.vel.x *= Math.pow(0.04, dt);
+            local.vel.z *= Math.pow(0.04, dt);
+          }
+
+          if (this.keys['Space'] && local.onGround) {
+            local.vel.y = 15.5;
+            local.onGround = false;
+          }
+        }
+
+        // 2. Update All Fighters & Bot AI
+        for (const f of this.fighters.values()) {
+          if (!f.alive) continue;
+          if (f.parryActiveTimer > 0) f.parryActiveTimer = Math.max(0, f.parryActiveTimer - dt);
+          if (f.parryCooldown > 0) f.parryCooldown = Math.max(0, f.parryCooldown - dt);
+          if (f.abilityCooldown > 0) f.abilityCooldown = Math.max(0, f.abilityCooldown - dt);
+          if (f.forcefieldTimer > 0) f.forcefieldTimer = Math.max(0, f.forcefieldTimer - dt);
+          if (f.invisTimer > 0) f.invisTimer = Math.max(0, f.invisTimer - dt);
+
+          if (f.isBot && this.mode === 'match') {
+            this.updateBotAI(f, dt, elapsed);
+          }
+
+          f.vel.y -= 38 * dt;
+          f.pos.addScaledVector(f.vel, dt);
+
+          const floorY = (this.mode === 'lobby' && Math.hypot(f.pos.x, f.pos.z) < 8.4) ? 0.45 : 0;
+          if (f.pos.y <= floorY) {
+            f.pos.y = floorY;
+            f.vel.y = 0;
+            f.onGround = true;
+          }
+
+          const maxR = this.world.arenaRadius - 1.4;
+          const distCenter = Math.hypot(f.pos.x, f.pos.z);
+          if (distCenter > maxR) {
+            const scale = maxR / distCenter;
+            f.pos.x *= scale;
+            f.pos.z *= scale;
+          }
+
+          f.updateVisuals(dt, elapsed);
+        }
+
+        // 3. Homing Ball Physics & Deflection (Authoritative on Host or Solo)
+        const isAuthority = !this.net.currentRoom || this.net.currentRoom.isHost;
+        if (this.mode === 'match' && this.ball.active) {
+          const target = this.fighters.get(this.ball.targetId);
+
+          if (this.ball.spawnDelay > 0) {
+            this.ball.spawnDelay -= dt;
+            this.ball.pos.y = 4.5 + Math.sin(elapsed * 10) * 0.35;
+          } else if (this.ball.telekinesisTimer > 0) {
+            this.ball.telekinesisTimer -= dt;
+          } else if (target && target.alive) {
+            const aimPoint = target.pos.clone().add(new THREE.Vector3(0, 2.2, 0));
+            const toTarget = aimPoint.sub(this.ball.pos);
+            const dist = toTarget.length();
+            toTarget.normalize();
+
+            if (this.ball.vel.lengthSq() < 0.1) {
+              this.ball.vel.copy(toTarget).multiplyScalar(this.ball.speed);
+            } else {
+              const curDir = this.ball.vel.clone().normalize();
+              curDir.lerp(toTarget, Math.min(1, dt * 6.5)).normalize();
+              this.ball.vel.copy(curDir).multiplyScalar(this.ball.speed);
+            }
+
+            this.ball.pos.addScaledVector(this.ball.vel, dt);
+
+            if (isAuthority) {
+              // Check Parry or Forcefield Deflection
+              const parryRange = 4.4 + this.ball.speed * 0.045;
+              if (dist <= parryRange && (target.parryActiveTimer > 0 || target.forcefieldTimer > 0)) {
+                this.deflectBallBy(target);
+              } else if (dist <= 1.85) {
+                this.eliminateFighter(target, this.ball.lastHitterId, false);
+              }
+            }
+          } else if (isAuthority) {
+            this.spawnBallFromCenter();
+          }
+
+          // Update Red Edge Alert & Offscreen Ball Arrow
+          const targetingMe = local && local.alive && this.ball.targetId === local.id && this.ball.spawnDelay <= 0;
+          document.getElementById('target-edge-alert').classList.toggle('active', Boolean(targetingMe));
+          this.updateBallIndicator();
+        }
+
+        // 4. Network State Sync (~20 Hz)
+        if (this.net.currentRoom && local && local.alive) {
+          this.netSyncAccum += dt;
+          if (this.netSyncAccum >= 0.05) {
+            this.netSyncAccum = 0;
+            this.net.broadcast({
+              type: 'PLAYER_STATE',
+              senderNetId: this.net.peerId,
+              pos: [local.pos.x, local.pos.y, local.pos.z],
+              yaw: local.yaw
+            });
+            if (this.net.currentRoom.isHost && this.mode === 'match' && this.ball.active) {
+              this.net.broadcast({
+                type: 'BALL_SYNC',
+                pos: [this.ball.pos.x, this.ball.pos.y, this.ball.pos.z],
+                speed: this.ball.speed,
+                targetNetId: this.toNetId(this.ball.targetId)
+              });
+            }
+          }
+        }
+
+        // 5. Sky Lobby Intermission Timer (30s) & Portal Proximity
+        if (this.mode === 'lobby') {
+          const anyModalOpen = Boolean(document.querySelector('[id^="modal-"]:not(.hidden)'));
+          if (!anyModalOpen && (!this.net.currentRoom || this.net.currentRoom.isHost)) {
+            this.intermissionTimer -= dt;
+            if (this.intermissionTimer <= 0) {
+              this.intermissionTimer = 30.0;
+              this.launchConfiguredOnlineOrLobbyMatch(this.getTopVotedMap());
+            }
+          }
+          document.getElementById('hud-status-title').textContent = `INTERMISSION • ${Math.max(0, Math.ceil(this.intermissionTimer))}s`;
+          document.getElementById('hud-speedometer').textContent = `NEXT: ${this.getTopVotedMap().toUpperCase()}`;
+
+          if (local) {
+            if (this.portalCooldown > 0) this.portalCooldown = Math.max(0, this.portalCooldown - dt);
+            let nearPortal = null;
+            for (const p of this.world.portals) {
+              const d = local.pos.distanceTo(p.pos);
+              if (d < 5.2) nearPortal = p;
+              if (d < 2.25 && this.portalCooldown <= 0) {
+                this.activatePortalAction(p.action);
+                break;
+              }
+            }
+            this.activePortal = nearPortal;
+            const prompt = document.getElementById('portal-prompt');
+            if (nearPortal) {
+              prompt.textContent = `STEP IN OR PRESS [E] • ${nearPortal.label}`;
+              prompt.classList.remove('hidden');
+            } else {
+              prompt.classList.add('hidden');
+            }
+          }
+        } else if (this.mode === 'match') {
+          const aliveCount = Array.from(this.fighters.values()).filter(f => f.alive).length;
+          document.getElementById('hud-status-title').textContent = `${this.selectedMap.toUpperCase()} • ${aliveCount} ALIVE`;
+          document.getElementById('hud-speedometer').textContent = `BALL: ${Math.round(this.ball.speed * 3.6)} KM/H`;
+        } else if (this.mode === 'ended') {
+          this.summaryReturnTimer -= dt;
+          document.getElementById('summary-auto-return-text').textContent = `LOBBY IN ${Math.max(0, Math.ceil(this.summaryReturnTimer))}s`;
+          if (this.summaryReturnTimer <= 0) {
+            this.enterSkyLobby();
+          }
+        }
+
+        // 6. Update Cooldown Labels & Camera
+        if (local) {
+          document.getElementById('parry-cd-label').textContent = local.parryCooldown > 0 ? `${local.parryCooldown.toFixed(1)}s` : 'READY';
+          document.getElementById('ability-cd-label').textContent = local.abilityCooldown > 0 ? `${local.abilityCooldown.toFixed(1)}s` : 'READY';
+          document.getElementById('touch-parry-cd').textContent = local.parryCooldown > 0 ? `${local.parryCooldown.toFixed(1)}s` : 'READY';
+          document.getElementById('touch-ability-cd').textContent = local.abilityCooldown > 0 ? `${local.abilityCooldown.toFixed(1)}s` : 'READY';
+        }
+
+        this.updateCamera(dt);
+        this.world.update(dt, elapsed);
+        this.vfx.update(dt, this.ball);
+      }
+
+      updateBotAI(bot, dt, elapsed) {
+        const orbitAngle = elapsed * 0.7 + parseInt(bot.id.replace(/\D/g, '') || '1', 10);
+        const desiredPos = new THREE.Vector3(Math.cos(orbitAngle) * 18, 0, Math.sin(orbitAngle) * 18);
+        const moveDir = desiredPos.sub(bot.pos);
+        moveDir.y = 0;
+        if (moveDir.length() > 1) {
+          moveDir.normalize();
+          bot.vel.x = THREE.MathUtils.lerp(bot.vel.x, moveDir.x * 12.5, dt * 4);
+          bot.vel.z = THREE.MathUtils.lerp(bot.vel.z, moveDir.z * 12.5, dt * 4);
+          bot.yaw = Math.atan2(moveDir.x, moveDir.z);
+        }
+
+        if (this.ball.active && this.ball.targetId === bot.id && this.ball.spawnDelay <= 0) {
+          const dist = bot.pos.distanceTo(this.ball.pos);
+          const parryChance = bot.diff === 'grandmaster' ? 0.92 : (bot.diff === 'pro' ? 0.74 : 0.45);
+          if (dist < 6.2 && bot.parryCooldown <= 0 && bot.botReactionTimer <= 0) {
+            bot.botReactionTimer = 0.55;
+            if (Math.random() < parryChance) {
+              const targetFighter = Array.from(this.fighters.values()).find(f => f.alive && f.id !== bot.id);
+              if (targetFighter) {
+                bot.yaw = Math.atan2(targetFighter.pos.x - bot.pos.x, targetFighter.pos.z - bot.pos.z);
+              }
+              this.triggerParry(bot);
+            }
+          }
+        }
+        if (bot.botReactionTimer > 0) bot.botReactionTimer -= dt;
+      }
+
+      updateBallIndicator() {
+        const ind = document.getElementById('ball-direction-indicator');
+        if (!this.ball.active || this.mode !== 'match') {
+          ind.classList.add('hidden');
+          return;
+        }
+        const projected = this.ball.pos.clone().project(this.camera);
+        if (projected.z < 1 && Math.abs(projected.x) <= 0.92 && Math.abs(projected.y) <= 0.92) {
+          ind.classList.add('hidden');
+          return;
+        }
+        ind.classList.remove('hidden');
+        const clampedX = THREE.MathUtils.clamp(projected.x, -0.88, 0.88);
+        const clampedY = THREE.MathUtils.clamp(projected.y, -0.82, 0.82);
+        const sx = (clampedX * 0.5 + 0.5) * window.innerWidth;
+        const sy = (-clampedY * 0.5 + 0.5) * window.innerHeight;
+        ind.style.left = `${sx}px`;
+        ind.style.top = `${sy}px`;
+      }
+
+      updateCamera(dt) {
+        let focus = this.fighters.get(this.localId);
+        if (!focus || !focus.alive) {
+          focus = Array.from(this.fighters.values()).find(f => f.alive) || focus;
+        }
+        const targetPos = focus ? focus.pos.clone().add(new THREE.Vector3(0, 2.5, 0)) : new THREE.Vector3(0, 2.5, 0);
+
+        const horizDist = Math.cos(this.camPitch) * this.camDist;
+        const camX = targetPos.x + Math.sin(this.camYaw) * horizDist;
+        const camY = targetPos.y + Math.sin(this.camPitch) * this.camDist;
+        const camZ = targetPos.z + Math.cos(this.camYaw) * horizDist;
+
+        this.camera.position.lerp(new THREE.Vector3(camX, camY, camZ), Math.min(1, dt * 14));
+        this.camera.lookAt(targetPos);
+      }
+
+      animate(now) {
+        const dt = Math.min(0.05, (now - this.lastFrameTime) / 1000);
+        this.lastFrameTime = now;
+
+        this.fpsFrames++;
+        if (now - this.fpsLastTime >= 500) {
+          const fps = Math.round((this.fpsFrames * 1000) / (now - this.fpsLastTime));
+          document.getElementById('hud-fps').textContent = `${fps} FPS`;
+          this.fpsFrames = 0;
+          this.fpsLastTime = now;
+        }
+
+        this.updateSimulation(dt, now / 1000);
+        this.renderer.render(this.scene, this.camera);
+        requestAnimationFrame(this.animate);
+      }
+
+      /* ==========================================================================
+         10. UI RENDERING, MODALS, COOKIES & INPUT BINDINGS
+         ========================================================================== */
+      openModal(id) {
+        this.closeAllModals();
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('hidden');
+        if (id === 'modal-swords') this.renderSwordsShop();
+        if (id === 'modal-abilities') this.renderAbilitiesShop();
+        if (id === 'modal-servers') this.renderRoomUI(this.net.currentRoom);
+        if (id === 'modal-settings' || id === 'modal-save') this.syncHUDFromProfile();
+      }
+
+      closeAllModals() {
+        ['modal-servers', 'modal-play', 'modal-swords', 'modal-abilities', 'modal-save', 'modal-settings'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('hidden');
+        });
+      }
+
+      refreshRosterUI() {
+        const list = document.getElementById('roster-list');
+        const fighters = Array.from(this.fighters.values());
+        const aliveCount = fighters.filter(f => f.alive).length;
+        document.getElementById('roster-alive-count').textContent = `${aliveCount} Alive`;
+
+        list.innerHTML = fighters.map(f => {
+          const badge = f.isBot
+            ? '<span class="px-1 rounded bg-amber-500 text-slate-950 text-[9px] font-black">BOT</span>'
+            : '<span class="px-1 rounded bg-blue-600 text-white text-[9px] font-black">HUMAN</span>';
+          return `
+            <div class="flex items-center justify-between px-2 py-1 rounded bg-slate-900 border ${f.alive ? 'border-slate-700' : 'border-red-900/50 opacity-50'} text-[11px]">
+              <div class="flex items-center gap-1.5 truncate">
+                <span class="w-2 h-2 rounded-full ${f.alive ? 'bg-emerald-400' : 'bg-red-500'}"></span>
+                <span class="font-bold text-white truncate">${f.name}</span>
+                ${badge}
+              </div>
+              <span class="font-mono-num text-[10px] text-slate-400">${f.elims}K</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      renderRoomUI(room) {
+        const browserView = document.getElementById('room-browser-view');
+        const activeView = document.getElementById('room-active-view');
+        const navLabel = document.getElementById('nav-room-label');
+
+        if (!room) {
+          browserView.classList.remove('hidden');
+          activeView.classList.add('hidden');
+          activeView.classList.remove('flex');
+          navLabel.textContent = 'ONLINE PARTY';
+          return;
+        }
+
+        browserView.classList.add('hidden');
+        activeView.classList.remove('hidden');
+        activeView.classList.add('flex');
+        navLabel.textContent = `PARTY: ${room.code}`;
+
+        document.getElementById('active-room-code').textContent = room.code;
+        document.getElementById('active-room-role-badge').textContent = room.isHost ? 'ROOM HOST' : 'PARTY MEMBER';
+        document.getElementById('active-room-bot-notice').classList.toggle('hidden', !room.fillBots);
+        document.getElementById('host-room-controls').classList.toggle('hidden', !room.isHost);
+        document.getElementById('client-room-wait-msg').classList.toggle('hidden', room.isHost);
+
+        if (room.isHost) {
+          document.getElementById('select-active-room-map').value = room.mapKey || 'colosseum';
+          document.getElementById('chk-active-room-bots').checked = Boolean(room.fillBots);
+          document.getElementById('select-active-room-bot-diff').value = room.botDiff || 'pro';
+        }
+
+        const membersEl = document.getElementById('active-room-members');
+        membersEl.innerHTML = room.members.map(m => `
+          <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs">
+            <span class="font-black text-white">${m.name}</span>
+            <span class="px-2 py-0.5 rounded ${m.isHost ? 'bg-amber-500 text-slate-950' : 'bg-emerald-600 text-white'} text-[10px] font-black">
+              ${m.isHost ? 'HOST • HUMAN' : 'REAL HUMAN'}
+            </span>
+          </div>
+        `).join('');
+      }
+
+      renderTabRoomsList(rooms) {
+        const container = document.getElementById('tab-rooms-list');
+        if (!rooms || rooms.length === 0) {
+          container.innerHTML = 'No open rooms detected in other browser tabs. Create a room above or enter a friend\'s code!';
+          return;
+        }
+        container.innerHTML = rooms.map(r => `
+          <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900 border border-slate-700">
+            <div>
+              <span class="font-mono-num font-black text-amber-400">ROOM ${r.code}</span>
+              <span class="text-slate-300 ml-2 font-bold">(${r.members.length} Human${r.members.length === 1 ? '' : 's'})</span>
+              ${r.fillBots ? '<span class="ml-2 px-1.5 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-black">[ ! ] BOTS ON</span>' : ''}
+            </div>
+            <button data-quick-join-code="${r.code}" class="btn-tactile btn-emerald px-3 py-1 text-[11px] font-black">JOIN</button>
+          </div>
+        `).join('');
+        container.querySelectorAll('[data-quick-join-code]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const code = btn.getAttribute('data-quick-join-code');
+            this.net.joinRoomByCode(code, this.profile.nickname);
+          });
+        });
+      }
+
+      renderSwordsShop() {
+        const grid = document.getElementById('swords-grid');
+        grid.innerHTML = SWORD_CATALOG.map(sw => {
+          const owned = this.profile.unlockedSwords.includes(sw.id);
+          const equipped = this.profile.equippedSword === sw.id;
+          const btnClass = equipped ? 'btn-emerald' : (owned ? 'btn-blue' : 'btn-amber');
+          const btnLabel = equipped ? 'EQUIPPED' : (owned ? 'EQUIP BLADE' : `BUY • ${sw.cost} COINS`);
+          return `
+            <div class="tactical-subcard p-3.5 flex flex-col justify-between gap-2.5">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-black text-white">${sw.name}</span>
+                  <span class="w-4 h-4 rounded-full border border-white/40" style="background-color:#${sw.bladeColor.toString(16).padStart(6, '0')}"></span>
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1">${sw.desc}</p>
+              </div>
+              <button data-sword-id="${sw.id}" class="btn-tactile ${btnClass} w-full py-2 text-xs font-black">${btnLabel}</button>
+            </div>
+          `;
+        }).join('');
+
+        grid.querySelectorAll('[data-sword-id]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-sword-id');
+            const sw = SWORD_CATALOG.find(s => s.id === id);
+            if (!sw) return;
+            if (this.profile.unlockedSwords.includes(id)) {
+              this.profile.equippedSword = id;
+              this.sound.playClick();
+            } else if (this.profile.coins >= sw.cost) {
+              this.profile.coins -= sw.cost;
+              this.profile.unlockedSwords.push(id);
+              this.profile.equippedSword = id;
+              this.sound.playWin();
+            } else {
+              this.showToast('Not enough coins!');
+              return;
+            }
+            this.cookieMgr.save(this.profile);
+            this.syncHUDFromProfile();
+            this.renderSwordsShop();
+            if (this.mode === 'lobby') this.enterSkyLobby();
+          });
+        });
+      }
+
+      renderAbilitiesShop() {
+        const grid = document.getElementById('abilities-grid');
+        grid.innerHTML = ABILITY_CATALOG.map(ab => {
+          const owned = this.profile.unlockedAbilities.includes(ab.id);
+          const equipped = this.profile.equippedAbility === ab.id;
+          const btnClass = equipped ? 'btn-emerald' : (owned ? 'btn-blue' : 'btn-amber');
+          const btnLabel = equipped ? 'EQUIPPED' : (owned ? 'EQUIP SKILL' : `BUY • ${ab.cost} COINS`);
+          return `
+            <div class="tactical-subcard p-3.5 flex flex-col justify-between gap-2.5">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-black text-white">${ab.name}</span>
+                  <span class="font-mono-num text-[10px] font-bold text-slate-400">${ab.cd}s CD</span>
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1">${ab.desc}</p>
+              </div>
+              <button data-ability-id="${ab.id}" class="btn-tactile ${btnClass} w-full py-2 text-xs font-black">${btnLabel}</button>
+            </div>
+          `;
+        }).join('');
+
+        grid.querySelectorAll('[data-ability-id]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-ability-id');
+            const ab = ABILITY_CATALOG.find(a => a.id === id);
+            if (!ab) return;
+            if (this.profile.unlockedAbilities.includes(id)) {
+              this.profile.equippedAbility = id;
+              this.sound.playClick();
+            } else if (this.profile.coins >= ab.cost) {
+              this.profile.coins -= ab.cost;
+              this.profile.unlockedAbilities.push(id);
+              this.profile.equippedAbility = id;
+              this.sound.playWin();
+            } else {
+              this.showToast('Not enough coins!');
+              return;
+            }
+            this.cookieMgr.save(this.profile);
+            this.syncHUDFromProfile();
+            this.renderAbilitiesShop();
+          });
+        });
+      }
+
+      syncHUDFromProfile() {
+        document.getElementById('hud-player-name').textContent = this.profile.nickname;
+        document.getElementById('hud-coins').textContent = this.profile.coins;
+        document.getElementById('hud-wins').textContent = this.profile.wins;
+
+        const ab = ABILITY_CATALOG.find(a => a.id === this.profile.equippedAbility) || ABILITY_CATALOG[0];
+        document.getElementById('hud-ability-name').textContent = ab.name.toUpperCase();
+        document.getElementById('touch-ability-name').textContent = ab.name.toUpperCase();
+
+        document.getElementById('save-stat-coins').textContent = this.profile.coins;
+        document.getElementById('save-stat-wins').textContent = this.profile.wins;
+        document.getElementById('save-stat-elims').textContent = this.profile.elims;
+        document.getElementById('save-stat-peak').textContent = `${this.profile.peakSpeed} KM/H`;
+        document.getElementById('input-player-nickname').value = this.profile.nickname;
+        document.getElementById('settings-username-input').value = this.profile.nickname;
+
+        const isLmbAbility = (this.profile.mouseScheme || 'lmb_ability') === 'lmb_ability';
+        document.getElementById('hud-parry-bind-badge').textContent = isLmbAbility ? 'F / E' : 'LMB / F';
+        document.getElementById('hud-ability-bind-badge').textContent = isLmbAbility ? 'LMB / Q' : 'Q / SHIFT';
+        document.getElementById('select-mouse-scheme').value = isLmbAbility ? 'lmb_ability' : 'lmb_parry';
+        document.getElementById('settings-keybind-summary').innerHTML = isLmbAbility
+          ? `
+            <div><strong class="text-white">Move Character:</strong> W A S D / Arrow Keys / Mobile Left Stick</div>
+            <div><strong class="text-white">Look Around:</strong> Hold Right Click + Drag Mouse (or Drag Screen on Touch)</div>
+            <div><strong class="text-amber-300">Dash / Ability:</strong> Left Click (LMB) or Q / Shift</div>
+            <div><strong class="text-blue-300">Parry Blade:</strong> F / E Key or Bottom Parry Button</div>
+          `
+          : `
+            <div><strong class="text-white">Move Character:</strong> W A S D / Arrow Keys / Mobile Left Stick</div>
+            <div><strong class="text-white">Look Around:</strong> Hold Right Click + Drag Mouse (or Drag Screen on Touch)</div>
+            <div><strong class="text-blue-300">Parry Blade:</strong> Left Click (LMB) or F / E Key</div>
+            <div><strong class="text-amber-300">Dash / Ability:</strong> Q / Shift Key or Bottom Ability Button</div>
+          `;
+
+        const sens = Number(this.profile.camSensitivity || 1.0);
+        const fov = Number(this.profile.camFov || 62);
+        const volPct = Math.round((typeof this.profile.sfxVolume === 'number' ? this.profile.sfxVolume : 1.0) * 100);
+        document.getElementById('slider-cam-sens').value = sens;
+        document.getElementById('settings-sens-val').textContent = `${sens.toFixed(1)}x`;
+        document.getElementById('slider-cam-fov').value = fov;
+        document.getElementById('settings-fov-val').textContent = `${fov}°`;
+        if (this.camera && this.camera.fov !== fov) {
+          this.camera.fov = fov;
+          this.camera.updateProjectionMatrix();
+        }
+        document.getElementById('slider-sfx-vol').value = volPct;
+        document.getElementById('settings-vol-val').textContent = `${volPct}%`;
+        document.getElementById('btn-toggle-sound').textContent = `SFX: ${this.sound.enabled ? 'ON' : 'OFF'}`;
+        document.getElementById('btn-settings-screen-shake').textContent = `IMPACT SHAKE: ${this.profile.screenShake !== false ? 'ON' : 'OFF'}`;
+        document.getElementById('btn-settings-fps-vis').textContent = `FPS COUNTER: ${this.profile.showFps !== false ? 'ON' : 'OFF'}`;
+        document.getElementById('hud-fps').classList.toggle('hidden', this.profile.showFps === false);
+        document.getElementById('btn-settings-gfx').textContent = `QUALITY: ${this.profile.gfx || 'HIGH'}`;
+        document.getElementById('btn-settings-touch-mode').textContent = `MOBILE TOUCH: ${this.profile.touchPref || 'AUTO'}`;
+
+        const swatchBox = document.getElementById('settings-palette-swatches');
+        if (swatchBox) {
+          swatchBox.innerHTML = FIGHTER_PALETTES.map((pal, idx) => {
+            const hex = '#' + pal.torso.toString(16).padStart(6, '0');
+            const active = (this.profile.paletteIdx || 0) === idx;
+            return `<button data-pick-palette="${idx}" class="w-6 h-6 rounded-full border-2 ${active ? 'border-white scale-110' : 'border-slate-600 opacity-80 hover:opacity-100'}" style="background-color:${hex}" title="Armor Theme ${idx + 1}"></button>`;
+          }).join('');
+          swatchBox.querySelectorAll('[data-pick-palette]').forEach(btn => {
+            btn.addEventListener('click', () => {
+              this.profile.paletteIdx = parseInt(btn.getAttribute('data-pick-palette'), 10) || 0;
+              this.cookieMgr.save(this.profile);
+              this.syncHUDFromProfile();
+              if (this.mode === 'lobby') this.enterSkyLobby();
+            });
+          });
+        }
+      }
+
+      setupMobileDetection() {
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth < 768;
+        const applyTouchMode = (mode) => {
+          this.profile.touchPref = mode;
+          const showTouch = mode === 'ON' || (mode === 'AUTO' && isTouchDevice);
+          document.getElementById('mobile-touch-controls').classList.toggle('hidden', !showTouch);
+          document.getElementById('desktop-action-bar').classList.toggle('hidden', showTouch);
+          document.getElementById('btn-touch-toggle').textContent = `TOUCH: ${mode}`;
+        };
+
+        applyTouchMode(this.profile.touchPref || 'AUTO');
+
+        document.getElementById('btn-touch-toggle').addEventListener('click', () => {
+          const order = ['AUTO', 'ON', 'OFF'];
+          const next = order[(order.indexOf(this.profile.touchPref || 'AUTO') + 1) % order.length];
+          applyTouchMode(next);
+          this.cookieMgr.save(this.profile);
+        });
+
+        // Virtual Joystick Touch Tracking
+        const zone = document.getElementById('joystick-zone');
+        const knob = document.getElementById('joystick-knob');
+        let joyTouchId = null;
+
+        const updateJoystick = (clientX, clientY) => {
+          const rect = zone.getBoundingClientRect();
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          const maxR = rect.width * 0.38;
+          let dx = clientX - cx;
+          let dy = clientY - cy;
+          const dist = Math.hypot(dx, dy);
+          if (dist > maxR) {
+            dx = (dx / dist) * maxR;
+            dy = (dy / dist) * maxR;
+          }
+          knob.style.transform = `translate(${dx}px, ${dy}px)`;
+          this.joyVec.x = dx / maxR;
+          this.joyVec.y = dy / maxR;
+        };
+
+        zone.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          const t = e.changedTouches[0];
+          joyTouchId = t.identifier;
+          updateJoystick(t.clientX, t.clientY);
+        }, { passive: false });
+
+        zone.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+          for (const t of e.changedTouches) {
+            if (t.identifier === joyTouchId) updateJoystick(t.clientX, t.clientY);
+          }
+        }, { passive: false });
+
+        const resetJoy = (e) => {
+          for (const t of e.changedTouches) {
+            if (t.identifier === joyTouchId) {
+              joyTouchId = null;
+              this.joyVec.x = 0;
+              this.joyVec.y = 0;
+              knob.style.transform = 'translate(0px, 0px)';
+            }
+          }
+        };
+        zone.addEventListener('touchend', resetJoy);
+        zone.addEventListener('touchcancel', resetJoy);
+
+        // Touch Camera Drag on 3D Canvas
+        const canvasEl = this.renderer.domElement;
+        let camTouchId = null;
+        let lastTouch = { x: 0, y: 0 };
+
+        canvasEl.addEventListener('touchstart', (e) => {
+          if (camTouchId === null && e.changedTouches.length > 0) {
+            const t = e.changedTouches[0];
+            camTouchId = t.identifier;
+            lastTouch = { x: t.clientX, y: t.clientY };
+          }
+        }, { passive: true });
+
+        canvasEl.addEventListener('touchmove', (e) => {
+          const sens = Number(this.profile.camSensitivity || 1.0);
+          for (const t of e.changedTouches) {
+            if (t.identifier === camTouchId) {
+              const dx = t.clientX - lastTouch.x;
+              const dy = t.clientY - lastTouch.y;
+              lastTouch = { x: t.clientX, y: t.clientY };
+              this.camYaw -= dx * 0.008 * sens;
+              this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.006 * sens, 0.12, 1.05);
+            }
+          }
+        }, { passive: true });
+
+        const clearCamTouch = (e) => {
+          for (const t of e.changedTouches) {
+            if (t.identifier === camTouchId) camTouchId = null;
+          }
+        };
+        canvasEl.addEventListener('touchend', clearCamTouch);
+        canvasEl.addEventListener('touchcancel', clearCamTouch);
+
+        // Mobile Action Buttons
+        document.getElementById('btn-touch-parry').addEventListener('click', () => {
+          this.triggerParry(this.fighters.get(this.localId));
+        });
+        document.getElementById('btn-touch-ability').addEventListener('click', () => {
+          this.triggerAbility(this.fighters.get(this.localId));
+        });
+        document.getElementById('btn-touch-jump').addEventListener('click', () => {
+          const local = this.fighters.get(this.localId);
+          if (local && local.alive && local.onGround) {
+            local.vel.y = 15.5;
+            local.onGround = false;
+          }
+        });
+      }
+
+      bindUI() {
+        // Navigation Buttons
+        document.getElementById('btn-nav-servers').addEventListener('click', () => this.openModal('modal-servers'));
+        document.getElementById('btn-nav-play').addEventListener('click', () => this.openModal('modal-play'));
+        document.getElementById('btn-nav-swords').addEventListener('click', () => this.openModal('modal-swords'));
+        document.getElementById('btn-nav-abilities').addEventListener('click', () => this.openModal('modal-abilities'));
+        document.getElementById('btn-nav-save').addEventListener('click', () => this.openModal('modal-save'));
+        document.getElementById('btn-nav-settings').addEventListener('click', () => this.openModal('modal-settings'));
+
+        document.querySelectorAll('[data-close-modal]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.getElementById(btn.getAttribute('data-close-modal')).classList.add('hidden');
+          });
+        });
+
+        // GFX Preset Toggle
+        document.getElementById('btn-gfx-toggle').addEventListener('click', () => {
+          const order = ['HIGH', 'MED', 'FAST'];
+          const next = order[(order.indexOf(this.profile.gfx || 'HIGH') + 1) % order.length];
+          this.applyGfxPreset(next);
+          this.cookieMgr.save(this.profile);
+        });
+
+        // Map Voting Buttons
+        document.querySelectorAll('.vote-map-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const chosen = btn.getAttribute('data-vote-map');
+            if (this.myVotedMap) this.mapVotes[this.myVotedMap] = Math.max(0, this.mapVotes[this.myVotedMap] - 1);
+            this.myVotedMap = chosen;
+            this.mapVotes[chosen] = (this.mapVotes[chosen] || 0) + 1;
+            ['colosseum', 'sandstone', 'sakura'].forEach(k => {
+              document.getElementById('vote-count-' + k).textContent = String(this.mapVotes[k]);
+            });
+            document.querySelectorAll('.vote-map-btn').forEach(b => {
+              const active = b.getAttribute('data-vote-map') === chosen;
+              b.classList.toggle('btn-blue', active);
+              b.classList.toggle('btn-slate', !active);
+            });
+          });
+        });
+
+        // Portal Prompt Tap
+        document.getElementById('portal-prompt').addEventListener('click', () => {
+          if (this.activePortal) this.activatePortalAction(this.activePortal.action);
+        });
+
+        // Online Room Party Actions
+        document.getElementById('btn-create-room').addEventListener('click', () => {
+          this.net.createRoom({
+            hostName: this.profile.nickname,
+            mapKey: document.getElementById('select-room-map').value,
+            fillBots: document.getElementById('chk-room-fill-bots').checked,
+            botDiff: document.getElementById('select-room-bot-diff').value
+          });
+        });
+
+        document.getElementById('btn-join-room-code').addEventListener('click', () => {
+          const code = document.getElementById('input-join-code').value;
+          if (!code.trim()) {
+            this.showToast('Enter a 5-character room code!');
+            return;
+          }
+          this.net.joinRoomByCode(code, this.profile.nickname);
+        });
+
+        document.getElementById('btn-copy-room-code').addEventListener('click', () => {
+          if (!this.net.currentRoom) return;
+          const temp = document.createElement('textarea');
+          temp.value = this.net.currentRoom.code;
+          document.body.appendChild(temp);
+          temp.select();
+          document.execCommand('copy');
+          document.body.removeChild(temp);
+          this.showToast(`Copied Room Code: ${this.net.currentRoom.code}`);
+        });
+
+        document.getElementById('chk-active-room-bots').addEventListener('change', (e) => {
+          if (this.net.currentRoom && this.net.currentRoom.isHost) {
+            this.net.currentRoom.fillBots = e.target.checked;
+            this.net.syncRoomMembers();
+          }
+        });
+
+        document.getElementById('select-active-room-map').addEventListener('change', (e) => {
+          if (this.net.currentRoom && this.net.currentRoom.isHost) {
+            this.net.currentRoom.mapKey = e.target.value;
+            this.net.syncRoomMembers();
+          }
+        });
+
+        document.getElementById('select-active-room-bot-diff').addEventListener('change', (e) => {
+          if (this.net.currentRoom && this.net.currentRoom.isHost) {
+            this.net.currentRoom.botDiff = e.target.value;
+            this.net.syncRoomMembers();
+          }
+        });
+
+        document.getElementById('btn-host-start-match').addEventListener('click', () => {
+          if (this.net.currentRoom && this.net.currentRoom.isHost) {
+            this.launchConfiguredOnlineOrLobbyMatch(this.net.currentRoom.mapKey);
+          }
+        });
+
+        document.getElementById('btn-leave-room').addEventListener('click', () => {
+          this.net.leaveRoom();
+          if (this.mode !== 'lobby') this.enterSkyLobby();
+        });
+
+        // Game Modes & Solo vs AI Bots
+        let chosenModeMap = 'colosseum';
+        document.querySelectorAll('.map-card').forEach(card => {
+          card.addEventListener('click', () => {
+            chosenModeMap = card.getAttribute('data-select-map');
+            document.querySelectorAll('.map-card').forEach(c => {
+              c.classList.toggle('border-2', c === card);
+              c.classList.toggle('border-blue-500', c === card);
+            });
+          });
+        });
+
+        document.getElementById('btn-start-solo-bots').addEventListener('click', () => {
+          const botCount = parseInt(document.getElementById('select-solo-bot-count').value, 10) || 5;
+          const botDiff = document.getElementById('select-solo-bot-diff').value;
+          this.startMatch({ isOnline: false, mapKey: chosenModeMap, botCount, botDiff });
+        });
+
+        document.getElementById('btn-modes-open-party').addEventListener('click', () => {
+          this.openModal('modal-servers');
+        });
+
+        // Cookie Save Data Controls
+        document.getElementById('btn-save-nickname').addEventListener('click', () => {
+          const val = document.getElementById('input-player-nickname').value.trim();
+          if (!val) return;
+          this.profile.nickname = val;
+          this.cookieMgr.save(this.profile);
+          this.syncHUDFromProfile();
+          if (this.mode === 'lobby') this.enterSkyLobby();
+        });
+
+        document.getElementById('btn-force-cookie-save').addEventListener('click', () => {
+          this.cookieMgr.save(this.profile, true);
+        });
+
+        document.getElementById('btn-export-save-code').addEventListener('click', () => {
+          const code = this.cookieMgr.exportCode(this.profile);
+          const input = document.getElementById('input-save-code');
+          input.value = code;
+          input.select();
+          document.execCommand('copy');
+          this.showToast('Save code copied to clipboard!');
+        });
+
+        document.getElementById('btn-import-save-code').addEventListener('click', () => {
+          const raw = document.getElementById('input-save-code').value;
+          if (!raw.trim()) return;
+          try {
+            this.profile = this.cookieMgr.importCode(raw);
+            this.cookieMgr.save(this.profile, true);
+            this.syncHUDFromProfile();
+            if (this.mode === 'lobby') this.enterSkyLobby();
+            this.showToast('Save code loaded!');
+          } catch (err) {
+            this.showToast('Invalid save code!');
+          }
+        });
+
+        let resetConfirmPending = false;
+        document.getElementById('btn-reset-cookie-data').addEventListener('click', (e) => {
+          if (!resetConfirmPending) {
+            resetConfirmPending = true;
+            e.target.textContent = 'CLICK AGAIN TO CONFIRM COOKIE RESET';
+            setTimeout(() => {
+              resetConfirmPending = false;
+              e.target.textContent = 'RESET PROGRESS (CLEAR COOKIE)';
+            }, 3500);
+            return;
+          }
+          resetConfirmPending = false;
+          e.target.textContent = 'RESET PROGRESS (CLEAR COOKIE)';
+          this.profile = this.cookieMgr.reset();
+          this.syncHUDFromProfile();
+          if (this.mode === 'lobby') this.enterSkyLobby();
+          this.showToast('Cookie progress cleared!');
+        });
+
+        // Expanded Settings Controls (Username, Mouse Binding, Sens, FOV, Volume, Toggles)
+        document.getElementById('btn-settings-apply-name').addEventListener('click', () => {
+          const newName = document.getElementById('settings-username-input').value.trim();
+          if (!newName) {
+            this.showToast('Enter a valid username first!');
+            return;
+          }
+          this.profile.nickname = newName;
+          if (this.net.currentRoom) {
+            const me = this.net.currentRoom.members.find(m => m.id === this.net.peerId);
+            if (me) me.name = newName;
+            if (this.net.currentRoom.isHost) this.net.syncRoomMembers();
+          }
+          this.cookieMgr.save(this.profile, true);
+          this.syncHUDFromProfile();
+          if (this.mode === 'lobby') this.enterSkyLobby();
+          this.showToast(`Username changed to ${newName}!`);
+        });
+
+        document.getElementById('select-mouse-scheme').addEventListener('change', (e) => {
+          this.profile.mouseScheme = e.target.value;
+          this.cookieMgr.save(this.profile);
+          this.syncHUDFromProfile();
+          this.showToast('Mouse controls updated!');
+        });
+
+        document.getElementById('slider-cam-sens').addEventListener('input', (e) => {
+          this.profile.camSensitivity = parseFloat(e.target.value) || 1.0;
+          document.getElementById('settings-sens-val').textContent = `${this.profile.camSensitivity.toFixed(1)}x`;
+          this.cookieMgr.save(this.profile, false);
+        });
+
+        document.getElementById('slider-cam-fov').addEventListener('input', (e) => {
+          const fov = parseInt(e.target.value, 10) || 62;
+          this.profile.camFov = fov;
+          document.getElementById('settings-fov-val').textContent = `${fov}°`;
+          this.camera.fov = fov;
+          this.camera.updateProjectionMatrix();
+          this.cookieMgr.save(this.profile, false);
+        });
+
+        document.getElementById('slider-sfx-vol').addEventListener('input', (e) => {
+          const pct = parseInt(e.target.value, 10);
+          this.profile.sfxVolume = pct / 100;
+          this.sound.volume = this.profile.sfxVolume;
+          document.getElementById('settings-vol-val').textContent = `${pct}%`;
+          this.cookieMgr.save(this.profile, false);
+        });
+
+        document.getElementById('btn-settings-gfx').addEventListener('click', () => {
+          const order = ['HIGH', 'MED', 'FAST'];
+          const next = order[(order.indexOf(this.profile.gfx || 'HIGH') + 1) % order.length];
+          this.applyGfxPreset(next);
+          this.cookieMgr.save(this.profile);
+        });
+
+        document.getElementById('btn-settings-fps-vis').addEventListener('click', () => {
+          this.profile.showFps = this.profile.showFps === false ? true : false;
+          this.cookieMgr.save(this.profile);
+          this.syncHUDFromProfile();
+        });
+
+        document.getElementById('btn-settings-screen-shake').addEventListener('click', () => {
+          this.profile.screenShake = this.profile.screenShake === false ? true : false;
+          this.cookieMgr.save(this.profile);
+          this.syncHUDFromProfile();
+        });
+
+        document.getElementById('btn-settings-touch-mode').addEventListener('click', () => {
+          document.getElementById('btn-touch-toggle').click();
+          this.syncHUDFromProfile();
+        });
+
+        document.getElementById('btn-toggle-sound').addEventListener('click', () => {
+          this.sound.enabled = !this.sound.enabled;
+          this.profile.soundOn = this.sound.enabled;
+          this.syncHUDFromProfile();
+          this.cookieMgr.save(this.profile);
+        });
+
+        // Elimination & Victory Screen Controls
+        document.getElementById('btn-death-exit-lobby').addEventListener('click', () => this.enterSkyLobby());
+        document.getElementById('btn-death-leave-early').addEventListener('click', () => this.enterSkyLobby());
+        document.getElementById('btn-death-spectate').addEventListener('click', () => {
+          document.getElementById('death-exit-modal').classList.add('hidden');
+          if (this.botsInCurrentMatch) {
+            document.getElementById('btn-spectate-exit').classList.remove('hidden');
+          }
+        });
+        document.getElementById('btn-spectate-exit').addEventListener('click', () => this.enterSkyLobby());
+        document.getElementById('btn-summary-lobby').addEventListener('click', () => this.enterSkyLobby());
+
+        // Desktop Action Buttons
+        document.getElementById('btn-desktop-parry').addEventListener('click', () => {
+          this.triggerParry(this.fighters.get(this.localId));
+        });
+        document.getElementById('btn-desktop-ability').addEventListener('click', () => {
+          this.triggerAbility(this.fighters.get(this.localId));
+        });
+        document.getElementById('btn-desktop-jump').addEventListener('click', () => {
+          const local = this.fighters.get(this.localId);
+          if (local && local.alive && local.onGround) {
+            local.vel.y = 15.5;
+            local.onGround = false;
+          }
+        });
+
+        // Keyboard Inputs
+        window.addEventListener('keydown', (e) => {
+          if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+          this.keys[e.code] = true;
+          if (e.code === 'KeyF') {
+            this.triggerParry(this.fighters.get(this.localId));
+          } else if (e.code === 'KeyE') {
+            if (this.mode === 'lobby' && this.activePortal) {
+              this.activatePortalAction(this.activePortal.action);
+            } else {
+              this.triggerParry(this.fighters.get(this.localId));
+            }
+          } else if (e.code === 'KeyQ' || e.code === 'ShiftLeft') {
+            this.triggerAbility(this.fighters.get(this.localId));
+          }
+        });
+
+        window.addEventListener('keyup', (e) => {
+          this.keys[e.code] = false;
+        });
+
+        // Canvas Mouse Controls: Right-Click Drag = Camera Orbit / Look Around, Left-Click = Dash/Ability (or Parry)
+        const canvasEl = this.renderer.domElement;
+        canvasEl.addEventListener('contextmenu', e => e.preventDefault());
+
+        canvasEl.addEventListener('mousedown', (e) => {
+          if (e.button === 0) {
+            const scheme = this.profile.mouseScheme || 'lmb_ability';
+            if (scheme === 'lmb_ability') {
+              this.triggerAbility(this.fighters.get(this.localId));
+            } else {
+              this.triggerParry(this.fighters.get(this.localId));
+            }
+          } else if (e.button === 2) {
+            this.isDraggingCam = true;
+            this.lastPointer = { x: e.clientX, y: e.clientY };
+          }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!this.isDraggingCam) return;
+          const sens = Number(this.profile.camSensitivity || 1.0);
+          const dx = e.clientX - this.lastPointer.x;
+          const dy = e.clientY - this.lastPointer.y;
+          this.lastPointer = { x: e.clientX, y: e.clientY };
+          this.camYaw -= dx * 0.0065 * sens;
+          this.camPitch = THREE.MathUtils.clamp(this.camPitch + dy * 0.005 * sens, 0.12, 1.05);
+        });
+
+        window.addEventListener('mouseup', (e) => {
+          if (e.button === 2 || !e.buttons) {
+            this.isDraggingCam = false;
+          }
+        });
+
+        canvasEl.addEventListener('wheel', (e) => {
+          this.camDist = THREE.MathUtils.clamp(this.camDist + e.deltaY * 0.01, 8, 28);
+        }, { passive: true });
+      }
+    }
+
+    window.addEventListener('load', () => {
+      window.bladeBallGame = new BladeBallGame();
+    });
+  </script>
+</body>
+</html>
